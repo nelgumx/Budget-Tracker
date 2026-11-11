@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ledger · UAE + PH Finance Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Serif+4:wght@600&display=swap">
+<style>
+/* ---------- COLOURS (your design system) ---------- */
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#FAF9F5; --card:#FFFFFF; --text:#2B2A27; --muted:#7A776F;
+  --accent:#D97757; --line:#E8E5DC; --good:#3E8E5A; --bad:#C0432F;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1F1E1B; --card:#2A2926; --text:#F2EFE8; --muted:#A09C92; --line:#3A3935; --good:#6CC28A; --bad:#E8806C;
+  }
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.4}
+h1,h2{font-family:'Source Serif 4',Georgia,serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:14px}
+/* ---------- HEADER ---------- */
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.ctrl{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.seg button{border:1px solid var(--line);background:var(--card);color:var(--text);padding:6px 12px;cursor:pointer}
+.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}
+.seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* ---------- TABS ---------- */
+nav{display:flex;gap:6px;overflow-x:auto;margin:14px 0}
+nav button{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--text);padding:8px 14px;border-radius:20px;cursor:pointer}
+nav button.on{background:var(--text);color:var(--bg)}
+/* ---------- CARDS, LISTS, FORMS ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{font-family:'Source Serif 4',Georgia,serif;font-size:22px}
+.lbl{font-size:12px;color:var(--muted)}
+.good{color:var(--good)}.bad{color:var(--bad)}
+.row{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row small{color:var(--muted);display:block}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.f label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+input,select{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);width:100%}
+input:disabled,select:disabled{background:var(--line);opacity:.5;cursor:not-allowed}
+.mini{width:90px;padding:5px}
+button.p{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;margin-top:10px}
+button.x{background:none;border:0;color:var(--muted);cursor:pointer}
+button.s{border:1px solid var(--line);background:none;color:var(--text);border-radius:6px;padding:4px 8px;cursor:pointer}
+td,th{padding:6px 4px;text-align:right;border-bottom:1px solid var(--line)}
+td:first-child,th:first-child{text-align:left}
+th{color:var(--muted);font-weight:400}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--accent)}
+/* ---------- SIGN-IN SCREEN ---------- */
+[hidden]{display:none!important}
+.authwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:14px}
+.authcard{width:100%;max-width:360px}
+.authcard label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);margin-top:10px}
+.authcard .lbl{margin:10px 0 0}
+</style>
+</head>
+<body>
+<!-- SIGN-IN SCREEN: shown first; the app below stays hidden until you are signed in -->
+<div id="auth" class="authwrap">
+  <form id="authForm" class="card authcard">
+    <h1>Ledger</h1>
+    <h2 id="authTitle" style="font-size:18px;margin-top:6px">Sign in</h2>
+    <label>Email<input id="authEmail" type="email" autocomplete="username" required></label>
+    <label>Password<input id="authPw" type="password" autocomplete="current-password" required minlength="6"></label>
+    <button class="p" id="authGo" type="submit" style="width:100%">Sign in</button>
+    <button class="s" id="authGoogle" type="button" style="width:100%;margin-top:8px;padding:9px">Continue with Google</button>
+    <p id="authMsg" class="lbl" role="alert"></p>
+    <p class="lbl"><button class="x" id="authSwitch" type="button">New here? Create an account</button> &middot; <button class="x" id="authReset" type="button">Forgot password?</button></p>
+  </form>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <h1>Ledger</h1>
+    <div class="ctrl">
+      <span class="seg" id="dispSeg"></span>
+      1 AED = <input class="mini" id="rate" type="number" step="0.01"> PHP
+    </div>
+  </header>
+  <div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px">
+    <span>Signed in as <b id="who"></b> &middot; <span id="saveState"></span></span>
+    <button class="s" onclick="signOutNow()">Sign out</button>
+  </div>
+  <nav id="tabs"></nav>
+  <div id="view"></div>
+  <p class="lbl"><button class="s" onclick="sample()">Load sample data</button> <button class="s" onclick="wipe()">Clear all</button></p>
+</div>
+
+<script>
+/* =========================================================
+   1. DATA – everything lives in one object called S
+   ========================================================= */
+const KEY = 'ledger-v1';
+// Starting (empty) data. rate = how many PHP for 1 AED (edit it in the header).
+let S = blank();            // stays empty until you sign in and your data is loaded
+let tab = 'Overview';
+let editId = null;   // id of the row being edited (null = adding a new one)
+let editK  = 'acc';  // which list is being edited: 'acc' (accounts) or 'debt'
+let lastPayAcc = null; // account last used to pay a debt (pre-selected next time)
+
+// A brand-new, empty set of data. Anything missing from loaded data falls back to these.
+function blank(){
+  return { rate:15.8, disp:'AED', acc:[], tx:[], debt:[], sav:[],
+           logos:{},        // bank name -> small picture (stored as a data URL)
+           inc:[],          // income sources
+           bill:[],         // recurring expenses (rent, wifi, ...)
+           fcN:6,           // forecast length in months
+           fcSpend:null };  // manual monthly spending {v, c}; null = automatic
+}
+// save() is called all over the app. It now hands your data to the cloud (see the module script below).
+function save(){ if (window.cloudSave) window.cloudSave(S); }
+// Called by the sign-in code once your data has arrived from the cloud
+function startApp(data){ S = Object.assign(blank(), data || {}); tab = 'Overview'; editId = null; payReq = null; render(); }
+// Called when you sign out: wipe the data from memory
+function stopApp(){ S = blank(); }
+window.ledgerData = () => S;   // lets the sign-in code read the current data
+
+/* =========================================================
+   2. HELPERS – currency, formatting, safe text
+   ========================================================= */
+const cur   = c => c === 'UAE' ? 'AED' : 'PHP';                 // country -> currency
+/* A round bank picture: your uploaded logo, or coloured initials if none yet */
+function avatar(name, size){
+  size = size || 32;
+  const base = 'width:'+size+'px;height:'+size+'px;border-radius:50%;flex:none;vertical-align:middle;';
+  if (S.logos[name]) return '<img alt="" src="'+S.logos[name]+'" style="'+base+'object-fit:cover">';
+  const ini = String(name || '?').split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join('');
+  return '<span style="'+base+'display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:'+Math.round(size*0.38)+'px;font-weight:600">'+esc(ini)+'</span>';
+}
+// One consistent label for an account everywhere: "Bank · Account name (AED)"
+const accLabel = a => (a.bank ? a.bank + ' · ' : '') + a.name + ' (' + cur(a.country) + ')';
+// Unique bank names taken from your Accounts tab (used in the Debt dropdown)
+const bankList = () => [...new Set(S.acc.map(a => a.bank).filter(Boolean))];
+const uid   = () => Date.now() + Math.floor(Math.random()*1000); // simple unique id
+const today = () => new Date().toISOString().slice(0,10);
+const esc   = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+// Convert an amount between AED and PHP using the rate
+function conv(n, from, to){ return from === to ? n : (from === 'AED' ? n * S.rate : n / S.rate); }
+// Convert into whichever currency is currently displayed
+const D = (n, from) => conv(n, from, S.disp);
+function fmt(n, c){ return c + ' ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+const money = (n, from) => fmt(D(n, from), S.disp);            // shown in display currency
+const own   = (n, c) => fmt(n, c);                              // shown in its own currency
+
+/* =========================================================
+   3. FORM DEFINITIONS – [key, label, type, options]
+   ========================================================= */
+const CATS = ['Food','Rent','Transport','Bills','Shopping','Family / Remittance','Health','Baby','Debt payment','Income','Other'];
+const COUNTRIES = ['UAE','Philippines'];
+function forms(){
+  return {
+    acc:[['bank','Bank name (e.g. ADCB, BDO)','text'],['name','Account / card name','text'],
+         ['kind','Type','select',['Debit account','Credit card','Cash','E-wallet']],
+         ['country','Country','select',COUNTRIES],['bal','Balance (debit / cash / e-wallet)','number'],['limit','Credit limit (credit card)','number']],
+    tx:[['date','Date','date'],['desc','Description','text'],['amt','Amount','number'],
+        ['type','Type','select',['Expense','Income']],['cat','Category','select',CATS],
+        ['debt','Debt to pay (Debt payment only)','select',S.debt.map(d=>[d.id,d.name+(d.who?' – '+d.who:'')])],
+        ['acct','Paid from (account)','select',S.acc.map(a=>[a.id,accLabel(a)])],
+        // Recipient dropdown = your banks + Other bank / Person (same idea as the Debt "Owed to")
+        ['to','Recipient (bank / person)','select',[['','— none —']].concat(bankList(),['Other bank','Person / other'])],
+        ['toName','Recipient name (if Other / Person)','text']],
+    // 'mode' decides how progress is tracked: by Amount (paid vs total) or by Months (installments)
+    debt:[['name','Debt name','text'],['country','Country','select',COUNTRIES],
+          ['who','Owed to','select',bankList().concat(['Other bank','Person / other'])],['whoName','Name (if Other bank / Person)','text'],
+          ['mode','Track by','select',['Amount','Months']],
+          ['monthly','Monthly payment','number'],
+          ['total','Total amount (Amount mode)','number'],['paid','Already paid (Amount mode)','number'],
+          ['tmonths','Total months (Months mode)','number'],['pmonths','Months paid (Months mode)','number']],
+    bill:[['name','Expense name (e.g. Rent, WiFi)','text'],['cat','Category','select',CATS.filter(c=>c!=='Debt payment'&&c!=='Income')],
+          ['country','Country','select',COUNTRIES],['amt','Amount per payment','number'],
+          ['freq','How often','select',['Monthly','Weekly','Bi-weekly','Yearly']],['due','Due day of month (optional)','number'],
+          ['acct','Paid from (account)','select',S.acc.map(a=>[a.id,accLabel(a)])]],
+    inc:[['name','Source name (e.g. Salary)','text'],['country','Country','select',COUNTRIES],['amt','Amount per payment','number'],
+         ['freq','How often','select',['Monthly','Bi-weekly','Weekly','Yearly']],
+         ['acct','Deposited to (account)','select',S.acc.filter(a=>a.kind!=='Credit card').map(a=>[a.id,accLabel(a)])]],
+    sav:[['name','Goal name','text'],['country','Country','select',COUNTRIES],['target','Target','number'],['saved','Saved so far','number']]
+  };
+}
+// Build the HTML for an "add" form
+function formHTML(k){
+  const fields = forms()[k].map(([id,label,type,opts]) => {
+    let input;
+    if (type === 'select') input = '<select id="'+k+'-'+id+'">' + opts.map(o => Array.isArray(o)
+        ? '<option value="'+o[0]+'">'+esc(o[1])+'</option>' : '<option>'+esc(o)+'</option>').join('') + '</select>';
+    else input = '<input id="'+k+'-'+id+'" type="'+type+'"'+(type==='number'?' step="0.01"':'')+(type==='date'?' value="'+today()+'"':'')+'>';
+    return '<label>'+label+input+'</label>';
+  }).join('');
+  const ed = k === editK && editId;   // true while editing a row (account or debt)
+  return '<div class="card"><h2>'+(ed?'Edit':'Add')+'</h2><div class="f">'+fields+'</div><button class="p" onclick="add(\''+k+'\')">'+(ed?'Update':'Save')+'</button>'+(ed?' <button class="s" onclick="editId=null;render()">Cancel</button>':'')+'</div>';
+}
+
+/* =========================================================
+   4. ACTIONS – add, delete, adjust
+   ========================================================= */
+function add(k){
+  const o = { id: uid() };
+  for (const [id,,type] of forms()[k]){
+    const v = document.getElementById(k+'-'+id).value;
+    o[id] = type === 'number' ? (parseFloat(v) || 0) : v;
+  }
+  // Editing an existing account: update it in place instead of adding a new one
+  if (k === 'acc' && editK === 'acc' && editId){
+    const a = S.acc.find(x => x.id === editId);
+    if (a){
+      // Credit cards keep their owed amount (transactions drive it); switching to a card starts at 0
+      if (o.kind === 'Credit card') o.bal = a.kind === 'Credit card' ? a.bal : 0;
+      o.id = a.id;
+      Object.assign(a, o);
+    }
+    editId = null; save(); render(); return;
+  }
+  if (k === 'tx'){
+    if (!S.acc.length) return alert('Add an account first.');
+    o.acct = Number(o.acct);
+    // Recipient: a bank you picked, or a typed name for Other bank / Person
+    if (o.to === 'Other bank' || o.to === 'Person / other') o.to = o.toName || o.to;
+    // A "Debt payment" must be an expense that points at a debt; it reduces that debt automatically
+    o.debt = o.cat === 'Debt payment' ? Number(o.debt) : null;
+    if (o.cat === 'Debt payment'){
+      if (o.type !== 'Expense') return alert('A debt payment must be an Expense.');
+      if (!S.debt.find(d => d.id === o.debt)) return alert('Pick the debt this payment is for.');
+      payDebt(o, 1);
+      if (!o.to){ const dd = S.debt.find(x => x.id === o.debt); o.to = dd ? (dd.who || '') : ''; }   // recipient defaults to the creditor
+    }
+    applyTx(o, 1);                       // update the account balance
+  }
+  // Debt "owed to": a bank you picked, or a typed name for Other bank / Person
+  if (k === 'debt'){
+    const other = o.who === 'Other bank' || o.who === 'Person / other';
+    o.ctype = o.who === 'Person / other' ? 'Person' : 'Bank';
+    if (other) o.who = o.whoName || o.who;
+  }
+  // Months mode: work out total and paid amounts from the monthly payment
+  if (k === 'debt' && o.mode === 'Months'){
+    o.total = o.monthly * o.tmonths;
+    o.paid  = o.monthly * o.pmonths;
+  }
+  // Editing an existing debt: update it in place instead of adding a new one
+  if (k === 'inc' || k === 'bill') o.acct = Number(o.acct);   // account id
+  if ((k === 'debt' || k === 'inc' || k === 'bill') && editK === k && editId){
+    const d = S[k].find(x => x.id === editId);
+    if (d){ o.id = d.id; Object.assign(d, o); }
+    editId = null; save(); render(); return;
+  }
+  S[k].push(o); save(); render();
+}
+// Apply a debt-payment transaction to its debt (dir = +1) or undo it (dir = -1)
+function payDebt(t, dir){
+  const d = S.debt.find(x => x.id === t.debt); if (!d) return;
+  const a = S.acc.find(x => x.id === t.acct);
+  // Remember the amount in the DEBT's currency so undoing it later is exact
+  if (dir === 1) t.applied = conv(t.amt, cur(a.country), cur(d.country));
+  d.paid = Math.max(0, d.paid + dir * (t.applied || 0));
+  // Installment debts: months paid follows the amount paid
+  if (d.mode === 'Months' && d.monthly) d.pmonths = Math.min(d.tmonths, Math.floor(d.paid / d.monthly + 1e-4));
+}
+// Change an account balance when a transaction is added (+1) or removed (-1)
+function applyTx(t, dir){
+  const a = S.acc.find(x => x.id === t.acct); if (!a) return;
+  const card = a.kind === 'Credit card';
+  // Normal accounts: income adds, expense subtracts. Cards track "owed", so reversed.
+  let delta = (t.type === 'Income' ? 1 : -1) * t.amt * (card ? -1 : 1);
+  a.bal += delta * dir;
+}
+function del(k, id){
+  if (editId === id) editId = null;
+  if (k === 'tx'){ const t = S.tx.find(x => x.id === id); if (t){ applyTx(t, -1); if (t.debt) payDebt(t, -1); } }
+  S[k] = S[k].filter(x => x.id !== id); save(); render();
+}
+// Add a payment to a debt, or money to a savings goal
+function adjust(k, id){
+  const v = parseFloat(document.getElementById('adj-'+id).value) || 0;
+  const o = S[k].find(x => x.id === id);
+  if (k === 'debt' && o.mode === 'Months'){
+    // Months mode: the box means number of months paid (blank = 1), capped at total months
+    o.pmonths = Math.min(o.tmonths, o.pmonths + (v || 1));
+    o.paid = o.monthly * o.pmonths;
+  } else if (k === 'debt') o.paid += v;
+  else o.saved += v;
+  save(); render();
+}
+// Start editing an account: the form at the top is filled in render()
+/* Pay button on a debt row, step 1: work out what the click means, then show the
+   list of accounts to choose from. Step 2 (payFromDebt) creates the transaction. */
+let payReq = null;   // {id: debt id, v: number typed in the box} while the account list is open
+// How much does a Pay click mean, in the DEBT's currency? Returns {amt,label} or {err}
+function payAmount(d, v){
+  if (d.mode === 'Months'){
+    const m = Math.min(v || 1, d.tmonths - d.pmonths);    // blank = 1 month, never beyond the total
+    if (m <= 0) return { err: 'This debt is already fully paid.' };
+    return { amt: m * d.monthly, label: m + (m === 1 ? ' month' : ' months') };
+  }
+  if (v <= 0) return { err: 'Enter the payment amount.' };
+  return { amt: v, label: 'payment' };
+}
+function startPay(id){
+  const d = S.debt.find(x => x.id === id); if (!d) return;
+  const v = parseFloat(document.getElementById('adj-'+id).value) || 0;
+  const p = payAmount(d, v);
+  if (p.err) return alert(p.err);
+  if (!S.acc.length) return alert('Add an account to pay from first.');
+  payReq = { id, v }; render();
+}
+// The list of accounts to choose from (money accounts first, credit cards after)
+function payPanel(d){
+  const p = payAmount(d, payReq.v);
+  const line = a => '<label style="flex-direction:row;align-items:center;gap:8px;color:var(--text);font-size:14px;padding:6px 0">'
+    + '<input type="radio" name="payacc" value="'+a.id+'" style="width:auto"'+(a.id===lastPayAcc?' checked':'')+'> '+avatar(a.bank||a.name,22)+' '
+    + esc(accLabel(a))+' \u2014 '+(a.kind==='Credit card'?'owed ':'balance ')+own(a.bal,cur(a.country))+'</label>';
+  const money = S.acc.filter(a => a.kind !== 'Credit card'), cards = S.acc.filter(a => a.kind === 'Credit card');
+  return '<div style="margin-top:8px;padding:10px;border:1px solid var(--accent);border-radius:10px;background:var(--bg)">'
+    + '<b>Pay '+p.label+' ('+own(p.amt,cur(d.country))+') from which account?</b>'
+    + (money.length ? '<div class="lbl" style="margin-top:6px">Savings / debit accounts</div>'+money.map(line).join('') : '')
+    + (cards.length ? '<div class="lbl" style="margin-top:6px">Credit cards</div>'+cards.map(line).join('') : '')
+    + '<button class="p" onclick="payFromDebt('+d.id+')">Confirm payment</button> <button class="s" onclick="payReq=null;render()">Cancel</button></div>';
+}
+/* Step 2: create a real "Debt payment" transaction, so the debt, the transaction
+   list and the chosen account balance all stay in sync. */
+function payFromDebt(id){
+  const d = S.debt.find(x => x.id === id); if (!d || !payReq) return;
+  const radio = document.querySelector('input[name="payacc"]:checked');
+  const a = radio && S.acc.find(x => x.id === Number(radio.value));
+  if (!a) return alert('Pick the account to pay from.');
+  const p = payAmount(d, payReq.v); if (p.err) return alert(p.err);
+  lastPayAcc = a.id;
+  const t = { id: uid(), date: today(), desc: 'Payment: ' + d.name, type: 'Expense', cat: 'Debt payment',
+              acct: a.id, debt: d.id, to: d.who || '',
+              amt: Math.round(conv(p.amt, cur(d.country), cur(a.country)) * 100) / 100 };   // in the account's currency
+  payDebt(t, 1);        // reduce the debt
+  applyTx(t, 1);        // update the account balance
+  S.tx.push(t); payReq = null; save(); render();
+}
+/* ---------- Income & forecast helpers ---------- */
+// How many payments fall in an average month for each frequency
+const FREQ = { 'Monthly':1, 'Bi-weekly':26/12, 'Weekly':52/12, 'Yearly':1/12 };
+function editBill(id){ editK = 'bill'; editId = id; render(); window.scrollTo({top:0, behavior:'smooth'}); }
+// "Pay" button on an expense: records it as an Expense transaction from the chosen account
+function payBill(id){
+  const b = S.bill.find(x => x.id === id); if (!b) return;
+  const a = S.acc.find(x => x.id === b.acct);
+  if (!a) return alert('The account was deleted. Edit this expense and pick another.');
+  const t = { id: uid(), date: today(), desc: b.name, type: 'Expense', cat: b.cat, acct: a.id, bill: b.id,
+              amt: Math.round(conv(b.amt, cur(b.country), cur(a.country)) * 100) / 100 };   // in the account's currency
+  applyTx(t, 1); S.tx.push(t); save(); render();
+}
+function editInc(id){ editK = 'inc'; editId = id; render(); window.scrollTo({top:0, behavior:'smooth'}); }
+// "Received" button: records one payment as an Income transaction in the deposit account
+function receiveIncome(id){
+  const s = S.inc.find(x => x.id === id); if (!s) return;
+  const a = S.acc.find(x => x.id === s.acct);
+  if (!a) return alert('The deposit account was deleted. Edit this source and pick another.');
+  const t = { id: uid(), date: today(), desc: 'Received: ' + s.name, type: 'Income', cat: 'Income', acct: a.id,
+              amt: Math.round(conv(s.amt, cur(s.country), cur(a.country)) * 100) / 100 };   // in the account's currency
+  applyTx(t, 1); S.tx.push(t); save(); render();
+}
+// Typical monthly spending (display currency), ignoring debt payments (those are forecast separately)
+function autoSpend(){
+  const now = new Date(), key = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  const exp = S.tx.filter(t => t.type === 'Expense' && t.cat !== 'Debt payment' && !t.bill).map(t => ({
+    m: t.date.slice(0,7), v: D(t.amt, cur((S.acc.find(a => a.id === t.acct) || {country:'UAE'}).country)) }));
+  const prev = [1,2,3].map(i => key(new Date(now.getFullYear(), now.getMonth()-i, 1)));   // last 3 full months
+  let use = exp.filter(e => prev.includes(e.m)), months = new Set(use.map(e => e.m)).size;
+  let note = 'average of your last ' + months + ' full month' + (months === 1 ? '' : 's');
+  if (!months){                                   // not enough history: fall back to this month so far
+    use = exp.filter(e => e.m === key(now)); months = use.length ? 1 : 0;
+    note = use.length ? 'this month so far (not enough history yet)' : 'no spending recorded yet';
+  }
+  return { v: months ? use.reduce((s,e) => s + e.v, 0) / months : 0, note };
+}
+/* ---------- Bank pictures ---------- */
+// Card on the Accounts tab: one row per bank with Upload / Change / remove
+function logoCard(){
+  const banks = bankList();
+  if (!banks.length) return '';
+  return '<div class="card"><h2>Bank pictures</h2>' + banks.map((b,i) =>
+    '<div class="row" style="align-items:center"><div style="display:flex;gap:10px;align-items:center">'+avatar(b,36)+esc(b)+'</div><div>'
+    +'<label style="cursor:pointer;display:inline-block;border:1px solid var(--line);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px">'+(S.logos[b]?'Change':'Upload')
+    +'<input type="file" accept="image/*" hidden onchange="setLogo('+i+',this)"></label>'
+    +(S.logos[b]?' <button class="x" onclick="removeLogo('+i+')">remove</button>':'')+'</div></div>').join('') + '</div>';
+}
+// Read the chosen photo, centre-crop it to a square and shrink it to 96x96 so it stays small
+function setLogo(i, input){
+  const b = bankList()[i], file = input.files && input.files[0];
+  if (!b || !file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const n = 96, c = document.createElement('canvas'); c.width = c.height = n;
+      const x = c.getContext('2d'), m = Math.min(img.width, img.height);
+      x.fillStyle = '#fff'; x.fillRect(0, 0, n, n);                       // white behind transparent logos
+      x.drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, n, n);
+      S.logos[b] = c.toDataURL('image/jpeg', 0.85);
+      save(); render();
+    };
+    img.onerror = () => alert('Could not read that image.');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+function removeLogo(i){ delete S.logos[bankList()[i]]; save(); render(); }
+function edit(id){ editK = 'acc'; editId = id; render(); window.scrollTo({top:0, behavior:'smooth'}); }
+function editDebt(id){ editK = 'debt'; editId = id; render(); window.scrollTo({top:0, behavior:'smooth'}); }
+function wipe(){ if (confirm('Delete ALL data?')){ S = {rate:S.rate,disp:S.disp,logos:S.logos,fcN:S.fcN,fcSpend:null,inc:[],bill:[],acc:[],tx:[],debt:[],sav:[]}; save(); render(); } }
+function sample(){
+  const a1 = uid(), a2 = a1+1, a3 = a1+2, d1 = a1+10;
+  S.acc = [{id:a1,bank:'ADCB',name:'Salary account',kind:'Debit account',country:'UAE',bal:4200,limit:0},
+           {id:a2,bank:'Emirates NBD',name:'Visa card',kind:'Credit card',country:'UAE',bal:1800,limit:8000},
+           {id:a3,bank:'BDO',name:'Savings',kind:'Debit account',country:'Philippines',bal:65000,limit:0}];
+  S.tx = [{id:uid(),date:today(),desc:'Groceries',amt:230,type:'Expense',cat:'Food',acct:a1},
+          {id:uid()+1,date:today(),desc:'Remittance to family',amt:1500,type:'Expense',cat:'Family / Remittance',acct:a1},
+          {id:uid()+2,date:today(),desc:'Diapers',amt:90,type:'Expense',cat:'Baby',acct:a2},
+          {id:uid()+6,date:today(),desc:'Loan installment',amt:900,type:'Expense',cat:'Debt payment',acct:a1,debt:d1,applied:900}];
+  S.debt = [{id:d1,name:'Personal loan',who:'ADCB',ctype:'Bank',country:'UAE',total:20000,paid:6000,monthly:900}];
+  S.bill = [{id:uid()+9,name:'Rent',cat:'Rent',country:'UAE',amt:3500,freq:'Monthly',due:1,acct:a1},
+            {id:uid()+10,name:'WiFi',cat:'Bills',country:'UAE',amt:349,freq:'Monthly',due:10,acct:a1}];
+  S.inc = [{id:uid()+7,name:'Salary',country:'UAE',amt:9000,freq:'Monthly',acct:a1},
+           {id:uid()+8,name:'Side income',country:'Philippines',amt:5000,freq:'Weekly',acct:a3}];
+  S.sav  = [{id:uid()+4,name:'Emergency fund',country:'UAE',target:15000,saved:4000},
+            {id:uid()+5,name:'House lot (PH)',country:'Philippines',target:500000,saved:120000}];
+  save(); render();
+}
+
+/* =========================================================
+   5. VIEWS – one function per tab
+   ========================================================= */
+const views = {
+  Overview(){
+    // Totals, all converted to the display currency
+    const cash  = S.acc.filter(a=>a.kind!=='Credit card').reduce((s,a)=>s+D(a.bal,cur(a.country)),0);
+    const owed  = S.acc.filter(a=>a.kind==='Credit card').reduce((s,a)=>s+D(a.bal,cur(a.country)),0);
+    const sav   = S.sav.reduce((s,x)=>s+D(x.saved,cur(x.country)),0);
+    const debt  = S.debt.reduce((s,x)=>s+D(Math.max(0,x.total-x.paid),cur(x.country)),0);
+    const net   = cash + sav - owed - debt;
+    // This month's income / spending
+    const m = today().slice(0,7);
+    const mt = S.tx.filter(t=>t.date.startsWith(m)).map(t=>({...t,v:D(t.amt,cur((S.acc.find(a=>a.id===t.acct)||{}).country))}));
+    const inc = mt.filter(t=>t.type==='Income').reduce((s,t)=>s+t.v,0);
+    const out = mt.filter(t=>t.type==='Expense').reduce((s,t)=>s+t.v,0);
+    // Spending by category
+    const cats = {}; mt.filter(t=>t.type==='Expense').forEach(t=>cats[t.cat]=(cats[t.cat]||0)+t.v);
+    const max = Math.max(1,...Object.values(cats));
+    // UAE vs Philippines split of cash
+    const split = c => S.acc.filter(a=>a.kind!=='Credit card'&&a.country===c).reduce((s,a)=>s+D(a.bal,cur(c)),0);
+    const stat = (l,v,cls) => '<div class="card"><div class="lbl">'+l+'</div><div class="big '+(cls||'')+'">'+fmt(v,S.disp)+'</div></div>';
+    return '<div class="card"><div class="lbl">Net worth</div><div class="big '+(net>=0?'good':'bad')+'">'+fmt(net,S.disp)+'</div></div>'
+      + '<div class="grid">'+stat('Cash &amp; banks',cash)+stat('Savings',sav,'good')+stat('Card balances owed',owed,'bad')+stat('Debt remaining',debt,'bad')
+      + stat('Income this month',inc,'good')+stat('Spent this month',out,'bad')
+      + stat('Cash in UAE',split('UAE'))+stat('Cash in Philippines',split('Philippines'))+'</div>'
+      + '<div class="card"><h2>Spending this month</h2>'
+      + (Object.keys(cats).length ? Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>
+          '<div style="margin-top:10px"><div class="row" style="border:0;padding:0"><span>'+esc(c)+'</span><span>'+fmt(v,S.disp)+'</span></div><div class="bar"><i style="width:'+(v/max*100)+'%"></i></div></div>').join('')
+        : '<p class="lbl">No spending yet this month.</p>') + '</div>';
+  },
+  Accounts(){
+    const list = S.acc.map(a=>{
+      const c = cur(a.country), card = a.kind==='Credit card';
+      const use = card && a.limit ? ' · '+Math.round(a.bal/a.limit*100)+'% of limit used' : '';
+      return '<div class="row"><div style="display:flex;gap:10px;align-items:center">'+avatar(a.bank||a.name,36)+'<div>'+esc((a.bank?a.bank+' · ':'')+a.name)+'<small>'+a.kind+' · '+a.country+use+'</small></div></div>'
+        +'<div style="text-align:right"><b class="'+(card?'bad':'')+'">'+own(a.bal,c)+'</b>'
+        +(c!==S.disp?'<small>≈ '+money(a.bal,c)+'</small>':'')+'<button class="x" onclick="edit('+a.id+')">edit</button> <button class="x" onclick="del(\'acc\','+a.id+')">delete</button></div></div>';
+    }).join('') || '<p class="lbl">No accounts yet.</p>';
+    return formHTML('acc') + '<div class="card">'+list+'</div>' + logoCard();
+  },
+  Transactions(){
+    const list = [...S.tx].sort((a,b)=>b.date.localeCompare(a.date)).map(t=>{
+      const a = S.acc.find(x=>x.id===t.acct) || {name:'(deleted)',country:'UAE'}, c = cur(a.country);
+      return '<div class="row"><div>'+esc(t.desc||t.cat)+'<small>'+t.date+' · '+esc(t.cat)+' · '+esc((a.bank?a.bank+' · ':'')+a.name)+(t.to?' → '+esc(t.to):'')+(t.debt?' · pays '+esc((S.debt.find(x=>x.id===t.debt)||{name:'(deleted debt)'}).name):'')+'</small></div>'
+        +'<div style="text-align:right"><b class="'+(t.type==='Income'?'good':'bad')+'">'+(t.type==='Income'?'+':'−')+own(t.amt,c)+'</b>'
+        +'<button class="x" onclick="del(\'tx\','+t.id+')">delete</button></div></div>';
+    }).join('') || '<p class="lbl">No transactions yet.</p>';
+    return formHTML('tx') + '<div class="card">'+list+'</div>';
+  },
+  Income(){
+    const total = S.inc.reduce((t,s) => t + D(s.amt * FREQ[s.freq], cur(s.country)), 0);
+    const list = S.inc.map(s => {
+      const c = cur(s.country), a = S.acc.find(x => x.id === s.acct);
+      return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>'+esc(s.name)+'</b><span class="good">'+own(s.amt,c)+' · '+s.freq+'</span></div>'
+        +'<small class="lbl">≈ '+money(s.amt*FREQ[s.freq],c)+' / month · into '+(a?esc(accLabel(a)):'(account deleted)')+'</small>'
+        +'<div style="margin-top:6px"><button class="s" onclick="receiveIncome('+s.id+')">Received</button> <button class="x" onclick="editInc('+s.id+')">edit</button> <button class="x" onclick="del(\'inc\','+s.id+')">delete</button></div></div>';
+    }).join('') || '<p class="lbl">No income sources yet.</p>';
+    return formHTML('inc')
+      + '<div class="card"><div class="lbl">Expected monthly income</div><div class="big good">'+fmt(total,S.disp)+'</div></div>'
+      + '<div class="card">'+list+'</div>';
+  },
+  Bills(){
+    const mth = today().slice(0,7);   // used to show "paid this month"
+    const total = S.bill.reduce((t,b) => t + D(b.amt * FREQ[b.freq], cur(b.country)), 0);
+    const list = S.bill.map(b => {
+      const c = cur(b.country), a = S.acc.find(x => x.id === b.acct);
+      const paid = S.tx.some(t => t.bill === b.id && t.date.startsWith(mth));
+      return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>'+esc(b.name)+(paid?' <span class="good">✓ paid this month</span>':'')+'</b><span class="bad">'+own(b.amt,c)+' · '+b.freq+'</span></div>'
+        +'<small class="lbl">'+esc(b.cat)+(b.due?' · due day '+b.due:'')+' · ≈ '+money(b.amt*FREQ[b.freq],c)+' / month · from '+(a?esc(accLabel(a)):'(account deleted)')+'</small>'
+        +'<div style="margin-top:6px"><button class="s" onclick="payBill('+b.id+')">Pay</button> <button class="x" onclick="editBill('+b.id+')">edit</button> <button class="x" onclick="del(\'bill\','+b.id+')">delete</button></div></div>';
+    }).join('') || '<p class="lbl">No recurring expenses yet.</p>';
+    return formHTML('bill')
+      + '<div class="card"><div class="lbl">Recurring expenses per month</div><div class="big bad">'+fmt(total,S.disp)+'</div></div>'
+      + '<div class="card">'+list+'</div>';
+  },
+  Forecast(){
+    const N = S.fcN || 6;
+    // 1. Starting point: money in debit / cash / e-wallet accounts, minus what is owed on cards
+    const cash = S.acc.reduce((s,a) => s + (a.kind === 'Credit card' ? -1 : 1) * D(a.bal, cur(a.country)), 0);
+    // 2. Monthly income from your income sources
+    const inc = S.inc.reduce((t,s) => t + D(s.amt * FREQ[s.freq], cur(s.country)), 0);
+    // 3. Monthly spending: your own number, or the automatic average
+    const auto = autoSpend(), spend = S.fcSpend ? D(S.fcSpend.v, S.fcSpend.c) : auto.v;
+    // Recurring expenses (rent, wifi, ...) are forecast separately from everyday spending
+    const bills = S.bill.reduce((t,b) => t + D(b.amt * FREQ[b.freq], cur(b.country)), 0);
+    // 4. Walk forward month by month, paying each debt its monthly amount until it is cleared
+    const rem = S.debt.map(d => ({ m: d.monthly, left: Math.max(0, d.total - d.paid), c: cur(d.country) }));
+    let bal = cash, rows = [], freeIn = rem.every(r => r.left <= 0.005) ? 0 : null;
+    for (let i = 1; i <= 60; i++){
+      let pay = 0;
+      rem.forEach(r => { if (r.m > 0 && r.left > 0){ const p = Math.min(r.m, r.left); r.left -= p; pay += D(p, r.c); } });
+      if (freeIn === null && rem.every(r => r.left <= 0.005)) freeIn = i;
+      if (i <= N){ const net = inc - spend - bills - pay; bal += net; rows.push({ i, pay, net, bal }); }
+    }
+    const now = new Date(), label = i => new Date(now.getFullYear(), now.getMonth()+i, 1).toLocaleString('en-US', {month:'short', year:'2-digit'});
+    const num = n => Math.round(n).toLocaleString('en-US');
+    const max = Math.max(1, ...rows.map(r => Math.abs(r.bal)));
+    const stat = (l,v,cls) => '<div class="card"><div class="lbl">'+l+'</div><div class="big '+(cls||'')+'">'+v+'</div></div>';
+    const last = rows[rows.length-1];
+    return '<div class="card"><h2>Forecast settings</h2><div class="f">'
+      + '<label>Look ahead<select onchange="S.fcN=Number(this.value);save();render()">'+[3,6,12].map(n => '<option value="'+n+'"'+(n===N?' selected':'')+'>'+n+' months</option>').join('')+'</select></label>'
+      + '<label>Other spending / month ('+S.disp+')<input type="number" step="0.01" value="'+(Math.round(spend*100)/100)+'" onchange="S.fcSpend={v:parseFloat(this.value)||0,c:S.disp};save();render()"></label></div>'
+      + '<p class="lbl">'+(S.fcSpend ? 'Using your own number. <button class="s" onclick="S.fcSpend=null;save();render()">Use automatic</button>' : 'Automatic: '+auto.note+'.')+' Bills and debt payments are added on top, using each debt\u2019s monthly payment.</p></div>'
+      + '<div class="grid">'+stat('Cash now (after card balances)', fmt(cash,S.disp), cash>=0?'':'bad')
+      + stat('Projected in '+N+' months', last ? fmt(last.bal,S.disp) : '—', last && last.bal>=0 ? 'good' : 'bad')
+      + stat('Income / month', fmt(inc,S.disp), 'good')
+      + stat('Bills / month', fmt(bills,S.disp), 'bad')
+      + stat('Net / month (first month)', rows[0] ? fmt(rows[0].net,S.disp) : '—', rows[0] && rows[0].net>=0 ? 'good' : 'bad')
+      + stat('Debt-free in', freeIn === 0 ? (S.debt.length ? 'Already!' : 'No debts') : freeIn ? freeIn+' months ('+label(freeIn)+')' : 'Not set — add monthly payments')+'</div>'
+      + '<div class="card"><h2>Projected cash</h2>'
+      + rows.map(r => '<div style="margin-top:10px"><div class="row" style="border:0;padding:0"><span>'+label(r.i)+'</span><span class="'+(r.bal>=0?'good':'bad')+'">'+fmt(r.bal,S.disp)+'</span></div><div class="bar"><i style="width:'+(Math.abs(r.bal)/max*100)+'%;background:'+(r.bal>=0?'var(--good)':'var(--bad)')+'"></i></div></div>').join('')+'</div>'
+      + '<div class="card"><h2>Month by month ('+S.disp+')</h2><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + '<tr><th>Month</th><th>Income</th><th>Bills</th><th>Other</th><th>Debt</th><th>Net</th><th>Cash</th></tr>'
+      + rows.map(r => '<tr><td>'+label(r.i)+'</td><td>'+num(inc)+'</td><td>'+num(bills)+'</td><td>'+num(spend)+'</td><td>'+num(r.pay)+'</td><td class="'+(r.net>=0?'good':'bad')+'">'+num(r.net)+'</td><td>'+num(r.bal)+'</td></tr>').join('')+'</table></div></div>'
+      + '<p class="lbl">An estimate only: it assumes steady income and spending, and ignores savings goals and any one-off costs.</p>';
+  },
+  Debt(){
+    const list = S.debt.map(d=>{
+      const c = cur(d.country), left = Math.max(0, d.total-d.paid), pct = d.total ? Math.min(100,d.paid/d.total*100) : 0;
+      const mo = d.mode === 'Months';   // older debts have no mode, so they count as Amount
+      return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>'+esc(d.name)+'</b><span class="bad">'+own(left,c)+' left</span></div>'
+        +'<small class="lbl">'+(d.who?avatar(d.who,16)+' Owed to '+esc(d.who)+' ('+d.ctype+') · ':'')+(mo?d.pmonths+' of '+d.tmonths+' months paid · ':'')+own(d.paid,c)+' of '+own(d.total,c)+' paid · Monthly '+own(d.monthly,c)+(mo?'':(d.monthly?' · '+Math.ceil(left/d.monthly)+' months to go':''))+'</small><div class="bar"><i style="width:'+pct+'%"></i></div>'
+        +'<div style="margin-top:6px"><input class="mini" id="adj-'+d.id+'" type="number" placeholder="'+(mo?'Months (1)':'Payment')+'"> <button class="s" onclick="startPay('+d.id+')">'+(mo?'Pay month':'Pay')+'</button> <button class="x" onclick="editDebt('+d.id+')">edit</button> <button class="x" onclick="del(\'debt\','+d.id+')">delete</button></div>'+(payReq && payReq.id === d.id ? payPanel(d) : '')+'</div>';
+    }).join('') || '<p class="lbl">No debts. 🎉</p>';
+    return formHTML('debt') + '<div class="card">'+list+'</div>';
+  },
+  Savings(){
+    const list = S.sav.map(g=>{
+      const c = cur(g.country), pct = g.target ? Math.min(100,g.saved/g.target*100) : 0;
+      return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>'+esc(g.name)+'</b><span class="good">'+own(g.saved,c)+' / '+own(g.target,c)+'</span></div>'
+        +'<div class="bar"><i style="width:'+pct+'%"></i></div>'
+        +'<div style="margin-top:6px"><input class="mini" id="adj-'+g.id+'" type="number" placeholder="Add"> <button class="s" onclick="adjust(\'sav\','+g.id+')">Add</button> <button class="x" onclick="del(\'sav\','+g.id+')">delete</button></div></div>';
+    }).join('') || '<p class="lbl">No savings goals yet.</p>';
+    return formHTML('sav') + '<div class="card">'+list+'</div>';
+  }
+};
+
+/* =========================================================
+   6. RENDER – redraw header controls, tabs and current view
+   ========================================================= */
+/* ---------- GREY-OUT RULES ----------
+   For each form: [controlling dropdown, function(value) -> which fields are active].
+   Fields marked false are greyed out and cannot be typed in. */
+const RULES = {
+  acc: [['kind', v => ({ bal: v !== 'Credit card', limit: v === 'Credit card' })]],
+  tx:  [['cat',  v => ({ debt: v === 'Debt payment' })],
+        ['to',   v => ({ toName: v === 'Other bank' || v === 'Person / other' })]],
+  debt: [
+    ['mode', v => ({ total: v === 'Amount', paid: v === 'Amount', tmonths: v === 'Months', pmonths: v === 'Months' })],
+    ['who',  v => ({ whoName: v === 'Other bank' || v === 'Person / other' })]
+  ]
+};
+function applyRules(k){
+  for (const [sel, fn] of RULES[k]){
+    const el = document.getElementById(k+'-'+sel);
+    if (!el) return;                       // this form isn't on screen
+    const active = fn(el.value);
+    for (const f in active){
+      const inp = document.getElementById(k+'-'+f);
+      inp.disabled = !active[f];           // grey out when not applicable
+      if (!active[f]) inp.value = '';      // clear anything typed before
+      inp.closest('label').style.opacity = active[f] ? 1 : 0.5;
+    }
+    el.onchange = () => applyRules(k);     // re-check whenever the dropdown changes
+  }
+}
+function render(){
+  document.getElementById('dispSeg').innerHTML = ['AED','PHP'].map(c=>
+    '<button class="'+(S.disp===c?'on':'')+'" onclick="S.disp=\''+c+'\';save();render()">'+c+'</button>').join('');
+  document.getElementById('rate').value = S.rate;
+  document.getElementById('tabs').innerHTML = Object.keys(views).map(t=>
+    '<button class="'+(tab===t?'on':'')+'" onclick="tab=\''+t+'\';editId=null;payReq=null;render()">'+t+'</button>').join('');
+  document.getElementById('view').innerHTML = views[tab]();
+  Object.keys(RULES).forEach(applyRules);   // apply grey-out rules to any visible form
+  // If editing a row, copy its values into the form, then re-apply the grey-out rules
+  if (editId && ((editK === 'acc' && tab === 'Accounts') || (editK === 'debt' && tab === 'Debt') || (editK === 'inc' && tab === 'Income') || (editK === 'bill' && tab === 'Bills'))){
+    const a = S[editK].find(x => x.id === editId);
+    if (a){
+      for (const [f] of forms()[editK]){
+        const el = document.getElementById(editK+'-'+f);
+        if (el) el.value = a[f] ?? '';
+      }
+      if (editK === 'debt' && !bankList().includes(a.who)){
+        // A name that isn't in the bank dropdown was typed as Other bank / Person
+        document.getElementById('debt-who').value = a.ctype === 'Person' ? 'Person / other' : 'Other bank';
+        document.getElementById('debt-whoName').value = a.who || '';
+      }
+      applyRules(editK);
+    }
+  }
+}
+// Changing the exchange rate updates everything
+document.getElementById('rate').addEventListener('change', e=>{ S.rate = parseFloat(e.target.value) || S.rate; save(); render(); });
+</script>
+
+<script type="module">
+/* =========================================================
+   7. SIGN IN + CLOUD SAVE (Firebase)
+   Auth      = who you are (email/password or Google)
+   Firestore = the database where each person's data is kept
+   ========================================================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+         signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, signOut }
+  from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+// >>> STEP: replace these 4 values with the ones from your Firebase project (Project settings > Your apps > Web app).
+// These are not passwords. The security comes from the Firestore rules, not from hiding this.
+const firebaseConfig = {
+  apiKey:    "AIzaSyBukgXGyOaT4MGeDhER2Hr8QdeKXTZ2M74",
+  authDomain:"ledger-1820a.firebaseapp.com",
+  projectId: "ledger-1820a",
+  appId:     "1:924883349786:web:e69cf8cbd9c8b70d89bca3"
+};
+
+const $ = id => document.getElementById(id);
+const msg = t => { $('authMsg').textContent = t || ''; };
+const setState = t => { $('saveState').textContent = t; };
+
+if (firebaseConfig.apiKey.startsWith("PASTE")) {
+  msg("Firebase is not set up yet. Paste your Firebase settings into firebaseConfig in this file.");
+  $('authGo').disabled = true; $('authGoogle').disabled = true;
+} else {
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  let currentUid = null, saveTimer = null, lastLogos = null;
+  const KEY = 'ledger-v1';   // where the old browser-only version kept your data
+
+  /* ---------- friendly error messages ---------- */
+  function friendly(e){
+    const m = {
+      'auth/invalid-email': 'That email address does not look right.',
+      'auth/missing-password': 'Enter your password.',
+      'auth/invalid-credential': 'Wrong email or password.',
+      'auth/user-not-found': 'Wrong email or password.',
+      'auth/wrong-password': 'Wrong email or password.',
+      'auth/email-already-in-use': 'There is already an account with this email. Try signing in.',
+      'auth/weak-password': 'Password must be at least 6 characters.',
+      'auth/too-many-requests': 'Too many tries. Wait a few minutes and try again.',
+      'auth/popup-closed-by-user': 'The Google window was closed before finishing.',
+      'auth/unauthorized-domain': 'This website address is not allowed yet. Add it under Authentication > Settings > Authorized domains.',
+      'auth/network-request-failed': 'No internet connection.'
+    };
+    return m[e.code] || ('Something went wrong (' + (e.code || e.message) + ').');
+  }
+
+  /* ---------- sign in / create account ---------- */
+  let mode = 'signin';
+  function setMode(m){
+    mode = m;
+    $('authTitle').textContent  = m === 'signin' ? 'Sign in' : 'Create account';
+    $('authGo').textContent     = m === 'signin' ? 'Sign in' : 'Create account';
+    $('authSwitch').textContent = m === 'signin' ? 'New here? Create an account' : 'Have an account? Sign in';
+    $('authPw').autocomplete    = m === 'signin' ? 'current-password' : 'new-password';
+    msg('');
+  }
+  $('authSwitch').addEventListener('click', () => setMode(mode === 'signin' ? 'signup' : 'signin'));
+
+  $('authForm').addEventListener('submit', async ev => {
+    ev.preventDefault(); msg('');
+    const email = $('authEmail').value.trim(), pw = $('authPw').value;
+    try {
+      if (mode === 'signin') await signInWithEmailAndPassword(auth, email, pw);
+      else await createUserWithEmailAndPassword(auth, email, pw);
+    } catch (e) { msg(friendly(e)); }
+  });
+  $('authGoogle').addEventListener('click', async () => {
+    msg('');
+    try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { msg(friendly(e)); }
+  });
+  $('authReset').addEventListener('click', async () => {
+    const email = $('authEmail').value.trim();
+    if (!email) return msg('Type your email above first, then tap Forgot password.');
+    try { await sendPasswordResetEmail(auth, email); msg('Password reset email sent. Check your inbox.'); }
+    catch (e) { msg(friendly(e)); }
+  });
+
+  /* ---------- saving: users/<your id>/ledger/main (+ /logos) ---------- */
+  async function writeNow(S){
+    if (!currentUid) return false;
+    const { logos, ...rest } = S;                 // pictures go in their own document (they are big)
+    const logosJson = JSON.stringify(logos || {});
+    try {
+      await setDoc(doc(db, 'users', currentUid, 'ledger', 'main'), { json: JSON.stringify(rest), updated: serverTimestamp() });
+      if (logosJson !== lastLogos){
+        await setDoc(doc(db, 'users', currentUid, 'ledger', 'logos'), { json: logosJson });
+        lastLogos = logosJson;
+      }
+      setState('Saved \u2713');
+      return true;
+    } catch (e) {
+      console.error(e);
+      setState('\u26A0 Not saved. Check your connection.');
+      return false;
+    }
+  }
+  // Wait half a second after the last change, then save once (avoids saving on every keystroke)
+  window.cloudSave = S => {
+    if (!currentUid) return;
+    clearTimeout(saveTimer); setState('Saving\u2026');
+    saveTimer = setTimeout(() => { saveTimer = null; writeNow(S); }, 500);
+  };
+  async function flush(){
+    if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; await writeNow(window.ledgerData()); }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+  window.signOutNow = async () => { await flush(); await signOut(auth); };
+
+  /* ---------- what happens when you sign in or out ---------- */
+  onAuthStateChanged(auth, async user => {
+    clearTimeout(saveTimer); saveTimer = null;
+    currentUid = user ? user.uid : null;
+    if (!user){
+      stopApp(); $('app').hidden = true; $('auth').hidden = false;
+      $('authPw').value = ''; setMode('signin'); return;
+    }
+    msg('Loading your data\u2026');
+    try {
+      const [m, l] = await Promise.all([
+        getDoc(doc(db, 'users', user.uid, 'ledger', 'main')),
+        getDoc(doc(db, 'users', user.uid, 'ledger', 'logos'))
+      ]);
+      let data = null, imported = false;
+      if (m.exists()){
+        data = JSON.parse(m.data().json);
+        data.logos = l.exists() ? JSON.parse(l.data().json) : {};
+      } else {
+        // First time on this account: offer to bring over data saved by the old browser-only version
+        const old = localStorage.getItem(KEY);
+        if (old && confirm('Found data saved in this browser. Import it into your account?')){ data = JSON.parse(old); imported = true; }
+      }
+      startApp(data);
+      lastLogos = JSON.stringify(window.ledgerData().logos || {});
+      $('who').textContent = user.email || user.displayName || 'you';
+      $('auth').hidden = true; $('app').hidden = false; msg('');
+      setState('Saved \u2713');
+      if (imported){
+        lastLogos = null;   // make sure the pictures are uploaded too
+        if (await writeNow(window.ledgerData())) localStorage.removeItem(KEY);   // delete the local copy only after the cloud copy is safe
+      }
+    } catch (e) {
+      console.error(e);
+      msg('Could not load your data (' + (e.code || e.message) + '). Check your Firestore rules and connection, then refresh.');
+    }
+  });
+}
+</script>
+</body>
+</html>
