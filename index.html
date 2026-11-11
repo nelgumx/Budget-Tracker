@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Finance Tracker</title>
+<title>Ledger · UAE + PH Finance Tracker</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Serif+4:wght@600&display=swap">
 <style>
 /* ---------- COLOURS (your design system) ---------- */
@@ -68,7 +68,7 @@ th{color:var(--muted);font-weight:400}
 <!-- SIGN-IN SCREEN: shown first; the app below stays hidden until you are signed in -->
 <div id="auth" class="authwrap">
   <form id="authForm" class="card authcard">
-    <h1>Personal Budget Tracker</h1>
+    <h1>Ledger</h1>
     <h2 id="authTitle" style="font-size:18px;margin-top:6px">Sign in</h2>
     <label>Email<input id="authEmail" type="email" autocomplete="username" required></label>
     <label>Password<input id="authPw" type="password" autocomplete="current-password" required minlength="6"></label>
@@ -81,7 +81,7 @@ th{color:var(--muted);font-weight:400}
 
 <div class="wrap" id="app" hidden>
   <header>
-    <h1>Personal Budget Tracker</h1>
+    <h1>Ledger</h1>
     <div class="ctrl">
       <span class="seg" id="dispSeg"></span>
       1 AED = <input class="mini" id="rate" type="number" step="0.01"> PHP
@@ -100,7 +100,7 @@ th{color:var(--muted);font-weight:400}
 /* =========================================================
    1. DATA – everything lives in one object called S
    ========================================================= */
-const KEY = 'Personal Budget Tracker-v1';
+const KEY = 'ledger-v1';
 // Starting (empty) data. rate = how many PHP for 1 AED (edit it in the header).
 let S = blank();            // stays empty until you sign in and your data is loaded
 let tab = 'Overview';
@@ -123,7 +123,7 @@ function save(){ if (window.cloudSave) window.cloudSave(S); }
 function startApp(data){ S = Object.assign(blank(), data || {}); tab = 'Overview'; editId = null; payReq = null; render(); }
 // Called when you sign out: wipe the data from memory
 function stopApp(){ S = blank(); }
-window.Personal Budget TrackerData = () => S;   // lets the sign-in code read the current data
+window.ledgerData = () => S;   // lets the sign-in code read the current data
 
 /* =========================================================
    2. HELPERS – currency, formatting, safe text
@@ -135,7 +135,7 @@ function avatar(name, size){
   const base = 'width:'+size+'px;height:'+size+'px;border-radius:50%;flex:none;vertical-align:middle;';
   if (S.logos[name]) return '<img alt="" src="'+S.logos[name]+'" style="'+base+'object-fit:cover">';
   const ini = String(name || '?').split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join('');
-  return '<span style="'+base+'display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:'+Math.round(size*0.38)+'px;font-weight:600">'+esc(ini)+</span>'
+  return '<span style="'+base+'display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:'+Math.round(size*0.38)+'px;font-weight:600">'+esc(ini)+'</span>';
 }
 // One consistent label for an account everywhere: "Bank · Account name (AED)"
 const accLabel = a => (a.bank ? a.bank + ' · ' : '') + a.name + ' (' + cur(a.country) + ')';
@@ -143,7 +143,7 @@ const accLabel = a => (a.bank ? a.bank + ' · ' : '') + a.name + ' (' + cur(a.co
 const bankList = () => [...new Set(S.acc.map(a => a.bank).filter(Boolean))];
 const uid   = () => Date.now() + Math.floor(Math.random()*1000); // simple unique id
 const today = () => new Date().toISOString().slice(0,10);
-const esc   = s => String(s).replace(/[&<>\"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const esc   = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 // Convert an amount between AED and PHP using the rate
 function conv(n, from, to){ return from === to ? n : (from === 'AED' ? n * S.rate : n / S.rate); }
 // Convert into whichever currency is currently displayed
@@ -196,7 +196,7 @@ function formHTML(k){
     return '<label>'+label+input+'</label>';
   }).join('');
   const ed = k === editK && editId;   // true while editing a row (account or debt)
-  return '<div class="card"><h2>'+(ed?'Edit':'Add')+'</h2><div class="f">'+fields+'</div><button class="p" onclick="add(\''+k+'\')">'+(ed?'Update':'Save')+'</button>'+(ed?' <button class="s" onclick="cancelEdit()">Cancel</button>':'')+'</div>';
+  return '<div class="card"><h2>'+(ed?'Edit':'Add')+'</h2><div class="f">'+fields+'</div><button class="p" onclick="add(\''+k+'\')">'+(ed?'Update':'Save')+'</button>'+(ed?' <button class="s" onclick="editId=null;render()">Cancel</button>':'')+'</div>';
 }
 
 /* =========================================================
@@ -316,7 +316,7 @@ function payPanel(d){
   const p = payAmount(d, payReq.v);
   const line = a => '<label style="flex-direction:row;align-items:center;gap:8px;color:var(--text);font-size:14px;padding:6px 0">'
     + '<input type="radio" name="payacc" value="'+a.id+'" style="width:auto"'+(a.id===lastPayAcc?' checked':'')+'> '+avatar(a.bank||a.name,22)+' '
-    + esc(accLabel(a))+' — '+(a.kind==='Credit card'?'owed ':'balance ')+own(a.bal,cur(a.country))+'</label>';
+    + esc(accLabel(a))+' \u2014 '+(a.kind==='Credit card'?'owed ':'balance ')+own(a.bal,cur(a.country))+'</label>';
   const money = S.acc.filter(a => a.kind !== 'Credit card'), cards = S.acc.filter(a => a.kind === 'Credit card');
   return '<div style="margin-top:8px;padding:10px;border:1px solid var(--accent);border-radius:10px;background:var(--bg)">'
     + '<b>Pay '+p.label+' ('+own(p.amt,cur(d.country))+') from which account?</b>'
@@ -475,7 +475,7 @@ const views = {
   Transactions(){
     const list = [...S.tx].sort((a,b)=>b.date.localeCompare(a.date)).map(t=>{
       const a = S.acc.find(x=>x.id===t.acct) || {name:'(deleted)',country:'UAE'}, c = cur(a.country);
-      return '<div class="row"><div>'+esc(t.desc||t.cat)+'<small>'+t.date+' · '+esc(t.cat)+' · '+esc((a.bank?a.bank+' · ':'')+a.name)+(t.to?' → '+esc(t.to):'')+(t.debt?' · pays '+esc((S.debt.find(d=>d.id===t.debt)||{}).name || ''):'')+'</small></div>'
+      return '<div class="row"><div>'+esc(t.desc||t.cat)+'<small>'+t.date+' · '+esc(t.cat)+' · '+esc((a.bank?a.bank+' · ':'')+a.name)+(t.to?' → '+esc(t.to):'')+(t.debt?' · pays '+esc((S.debt.find(x=>x.id===t.debt)||{name:'(deleted debt)'}).name):'')+'</small></div>'
         +'<div style="text-align:right"><b class="'+(t.type==='Income'?'good':'bad')+'">'+(t.type==='Income'?'+':'−')+own(t.amt,c)+'</b>'
         +'<button class="x" onclick="del(\'tx\','+t.id+')">delete</button></div></div>';
     }).join('') || '<p class="lbl">No transactions yet.</p>';
@@ -533,8 +533,8 @@ const views = {
     const last = rows[rows.length-1];
     return '<div class="card"><h2>Forecast settings</h2><div class="f">'
       + '<label>Look ahead<select onchange="S.fcN=Number(this.value);save();render()">'+[3,6,12].map(n => '<option value="'+n+'"'+(n===N?' selected':'')+'>'+n+' months</option>').join('')+'</select></label>'
-      + '<label>Other spending / month ('+S.disp+')<input type="number" step="0.01" value="'+(Math.round(spend*100)/100)+'" onchange="S.fcSpend={v:parseFloat(this.value)||0,c:S.disp};save();render()"></label>'
-      + '<p class="lbl">'+(S.fcSpend ? 'Using your own number. <button class="s" onclick="S.fcSpend=null;save();render()">Use automatic</button>' : 'Automatic: '+auto.note+'.')+' Bills and debt payments are added separately.</p>'
+      + '<label>Other spending / month ('+S.disp+')<input type="number" step="0.01" value="'+(Math.round(spend*100)/100)+'" onchange="S.fcSpend={v:parseFloat(this.value)||0,c:S.disp};save();render()"></label></div>'
+      + '<p class="lbl">'+(S.fcSpend ? 'Using your own number. <button class="s" onclick="S.fcSpend=null;save();render()">Use automatic</button>' : 'Automatic: '+auto.note+'.')+' Bills and debt payments are added on top, using each debt\u2019s monthly payment.</p></div>'
       + '<div class="grid">'+stat('Cash now (after card balances)', fmt(cash,S.disp), cash>=0?'':'bad')
       + stat('Projected in '+N+' months', last ? fmt(last.bal,S.disp) : '—', last && last.bal>=0 ? 'good' : 'bad')
       + stat('Income / month', fmt(inc,S.disp), 'good')
@@ -542,20 +542,19 @@ const views = {
       + stat('Net / month (first month)', rows[0] ? fmt(rows[0].net,S.disp) : '—', rows[0] && rows[0].net>=0 ? 'good' : 'bad')
       + stat('Debt-free in', freeIn === 0 ? (S.debt.length ? 'Already!' : 'No debts') : freeIn ? freeIn+' months ('+label(freeIn)+')' : 'Not set — add monthly payments')+'</div>'
       + '<div class="card"><h2>Projected cash</h2>'
-      + rows.map(r => '<div style="margin-top:10px"><div class="row" style="border:0;padding:0"><span>'+label(r.i)+'</span><span class="'+(r.bal>=0?'good':'bad')+'">'+fmt(r.bal,S.disp)+'</span></div><div class="bar"><i style="width:'+(Math.abs(r.bal)/max*100)+'%"></i></div></div>').join('')
-      + '</div><div class="card"><h2>Month by month ('+S.disp+')</h2><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + rows.map(r => '<div style="margin-top:10px"><div class="row" style="border:0;padding:0"><span>'+label(r.i)+'</span><span class="'+(r.bal>=0?'good':'bad')+'">'+fmt(r.bal,S.disp)+'</span></div><div class="bar"><i style="width:'+(Math.abs(r.bal)/max*100)+'%;background:'+(r.bal>=0?'var(--good)':'var(--bad)')+'"></i></div></div>').join('')+'</div>'
+      + '<div class="card"><h2>Month by month ('+S.disp+')</h2><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
       + '<tr><th>Month</th><th>Income</th><th>Bills</th><th>Other</th><th>Debt</th><th>Net</th><th>Cash</th></tr>'
-      + rows.map(r => '<tr><td>'+label(r.i)+'</td><td>'+num(inc)+'</td><td>'+num(bills)+'</td><td>'+num(spend)+'</td><td>'+num(r.pay)+'</td><td class="'+(r.net>=0?'good':'bad')+'">'+num(r.net)+'</td><td>'+num(r.bal)+'</td></tr>').join('')
-      + '</table></div></div><p class="lbl">An estimate only: it assumes steady income and spending, and ignores savings goals and any one-off costs.</p>';
+      + rows.map(r => '<tr><td>'+label(r.i)+'</td><td>'+num(inc)+'</td><td>'+num(bills)+'</td><td>'+num(spend)+'</td><td>'+num(r.pay)+'</td><td class="'+(r.net>=0?'good':'bad')+'">'+num(r.net)+'</td><td>'+num(r.bal)+'</td></tr>').join('')+'</table></div></div>'
+      + '<p class="lbl">An estimate only: it assumes steady income and spending, and ignores savings goals and any one-off costs.</p>';
   },
   Debt(){
     const list = S.debt.map(d=>{
       const c = cur(d.country), left = Math.max(0, d.total-d.paid), pct = d.total ? Math.min(100,d.paid/d.total*100) : 0;
       const mo = d.mode === 'Months';   // older debts have no mode, so they count as Amount
       return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>'+esc(d.name)+'</b><span class="bad">'+own(left,c)+' left</span></div>'
-        +'<small class="lbl">'+(d.who?avatar(d.who,16)+' Owed to '+esc(d.who)+' ('+d.ctype+') · ':'')+(mo?d.pmonths+' of '+d.tmonths+' months paid · ':'')+own(d.paid,c)+' of '+own(d.total,c)+' · '+Math.round(pct)+'% paid</small>'
-        +'<div style="margin-top:6px"><input class="mini" id="adj-'+d.id+'" type="number" placeholder="'+(mo?'Months (1)':'Payment')+'"> <button class="s" onclick="startPay('+d.id+')">'+(mo?'Pay months':'Pay')+'</button> <button class="x" onclick="editDebt('+d.id+')">edit</button> <button class="x" onclick="del(\'debt\','+d.id+')">delete</button></div>'
-        +(payReq && payReq.id === d.id ? payPanel(d) : '')+'</div>';
+        +'<small class="lbl">'+(d.who?avatar(d.who,16)+' Owed to '+esc(d.who)+' ('+d.ctype+') · ':'')+(mo?d.pmonths+' of '+d.tmonths+' months paid · ':'')+own(d.paid,c)+' of '+own(d.total,c)+' paid · Monthly '+own(d.monthly,c)+(mo?'':(d.monthly?' · '+Math.ceil(left/d.monthly)+' months to go':''))+'</small><div class="bar"><i style="width:'+pct+'%"></i></div>'
+        +'<div style="margin-top:6px"><input class="mini" id="adj-'+d.id+'" type="number" placeholder="'+(mo?'Months (1)':'Payment')+'"> <button class="s" onclick="startPay('+d.id+')">'+(mo?'Pay month':'Pay')+'</button> <button class="x" onclick="editDebt('+d.id+')">edit</button> <button class="x" onclick="del(\'debt\','+d.id+')">delete</button></div>'+(payReq && payReq.id === d.id ? payPanel(d) : '')+'</div>';
     }).join('') || '<p class="lbl">No debts. 🎉</p>';
     return formHTML('debt') + '<div class="card">'+list+'</div>';
   },
@@ -563,7 +562,6 @@ const views = {
     const list = S.sav.map(g=>{
       const c = cur(g.country), pct = g.target ? Math.min(100,g.saved/g.target*100) : 0;
       return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>'+esc(g.name)+'</b><span class="good">'+own(g.saved,c)+' / '+own(g.target,c)+'</span></div>'
-        +'<small class="lbl">'+(g.target?'Goal '+Math.round(pct)+'% funded':'No target yet')+'</small>'
         +'<div class="bar"><i style="width:'+pct+'%"></i></div>'
         +'<div style="margin-top:6px"><input class="mini" id="adj-'+g.id+'" type="number" placeholder="Add"> <button class="s" onclick="adjust(\'sav\','+g.id+')">Add</button> <button class="x" onclick="del(\'sav\','+g.id+')">delete</button></div></div>';
     }).join('') || '<p class="lbl">No savings goals yet.</p>';
@@ -646,8 +644,8 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
 // These are not passwords. The security comes from the Firestore rules, not from hiding this.
 const firebaseConfig = {
   apiKey:    "AIzaSyBukgXGyOaT4MGeDhER2Hr8QdeKXTZ2M74",
-  authDomain:"Personal Budget Tracker-1820a.firebaseapp.com",
-  projectId: "Personal Budget Tracker-1820a",
+  authDomain:"ledger-1820a.firebaseapp.com",
+  projectId: "ledger-1820a",
   appId:     "1:924883349786:web:e69cf8cbd9c8b70d89bca3"
 };
 
@@ -664,7 +662,7 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
   const db   = getFirestore(app);
 
   let currentUid = null, saveTimer = null, lastLogos = null;
-  const KEY = 'Personal Budget Tracker-v1';   // where the old browser-only version kept your data
+  const KEY = 'ledger-v1';   // where the old browser-only version kept your data
 
   /* ---------- friendly error messages ---------- */
   function friendly(e){
@@ -715,33 +713,33 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
     catch (e) { msg(friendly(e)); }
   });
 
-  /* ---------- saving: users/<your id>/Personal Budget Tracker/main (+ /logos) ---------- */
+  /* ---------- saving: users/<your id>/ledger/main (+ /logos) ---------- */
   async function writeNow(S){
     if (!currentUid) return false;
     const { logos, ...rest } = S;                 // pictures go in their own document (they are big)
     const logosJson = JSON.stringify(logos || {});
     try {
-      await setDoc(doc(db, 'users', currentUid, 'Personal Budget Tracker', 'main'), { json: JSON.stringify(rest), updated: serverTimestamp() });
+      await setDoc(doc(db, 'users', currentUid, 'ledger', 'main'), { json: JSON.stringify(rest), updated: serverTimestamp() });
       if (logosJson !== lastLogos){
-        await setDoc(doc(db, 'users', currentUid, 'Personal Budget Tracker', 'logos'), { json: logosJson });
+        await setDoc(doc(db, 'users', currentUid, 'ledger', 'logos'), { json: logosJson });
         lastLogos = logosJson;
       }
-      setState('Saved ✓');
+      setState('Saved \u2713');
       return true;
     } catch (e) {
       console.error(e);
-      setState('⚠ Not saved. Check your connection.');
+      setState('\u26A0 Not saved. Check your connection.');
       return false;
     }
   }
   // Wait half a second after the last change, then save once (avoids saving on every keystroke)
   window.cloudSave = S => {
     if (!currentUid) return;
-    clearTimeout(saveTimer); setState('Saving…');
+    clearTimeout(saveTimer); setState('Saving\u2026');
     saveTimer = setTimeout(() => { saveTimer = null; writeNow(S); }, 500);
   };
   async function flush(){
-    if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; await writeNow(window.Personal Budget TrackerData()); }
+    if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; await writeNow(window.ledgerData()); }
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
   window.signOutNow = async () => { await flush(); await signOut(auth); };
@@ -754,11 +752,11 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
       stopApp(); $('app').hidden = true; $('auth').hidden = false;
       $('authPw').value = ''; setMode('signin'); return;
     }
-    msg('Loading your data…');
+    msg('Loading your data\u2026');
     try {
       const [m, l] = await Promise.all([
-        getDoc(doc(db, 'users', user.uid, 'Personal Budget Tracker', 'main')),
-        getDoc(doc(db, 'users', user.uid, 'Personal Budget Tracker', 'logos'))
+        getDoc(doc(db, 'users', user.uid, 'ledger', 'main')),
+        getDoc(doc(db, 'users', user.uid, 'ledger', 'logos'))
       ]);
       let data = null, imported = false;
       if (m.exists()){
@@ -770,13 +768,13 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
         if (old && confirm('Found data saved in this browser. Import it into your account?')){ data = JSON.parse(old); imported = true; }
       }
       startApp(data);
-      lastLogos = JSON.stringify(window.Personal Budget TrackerData().logos || {});
+      lastLogos = JSON.stringify(window.ledgerData().logos || {});
       $('who').textContent = user.email || user.displayName || 'you';
       $('auth').hidden = true; $('app').hidden = false; msg('');
-      setState('Saved ✓');
+      setState('Saved \u2713');
       if (imported){
         lastLogos = null;   // make sure the pictures are uploaded too
-        if (await writeNow(window.Personal Budget TrackerData())) localStorage.removeItem(KEY);   // delete the local copy only after the cloud copy is safe
+        if (await writeNow(window.ledgerData())) localStorage.removeItem(KEY);   // delete the local copy only after the cloud copy is safe
       }
     } catch (e) {
       console.error(e);
