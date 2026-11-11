@@ -68,7 +68,7 @@ th{color:var(--muted);font-weight:400}
 <!-- SIGN-IN SCREEN: shown first; the app below stays hidden until you are signed in -->
 <div id="auth" class="authwrap">
   <form id="authForm" class="card authcard">
-    <h1>Personal Budget Tracker</h1>
+    <h1>Ledger</h1>
     <h2 id="authTitle" style="font-size:18px;margin-top:6px">Sign in</h2>
     <label>Email<input id="authEmail" type="email" autocomplete="username" required></label>
     <label>Password<input id="authPw" type="password" autocomplete="current-password" required minlength="6"></label>
@@ -81,7 +81,7 @@ th{color:var(--muted);font-weight:400}
 
 <div class="wrap" id="app" hidden>
   <header>
-    <h1>Personal Budget Tracker</h1>
+    <h1>Ledger</h1>
     <div class="ctrl">
       <span class="seg" id="dispSeg"></span>
       1 AED = <input class="mini" id="rate" type="number" step="0.01"> PHP
@@ -100,7 +100,7 @@ th{color:var(--muted);font-weight:400}
 /* =========================================================
    1. DATA – everything lives in one object called S
    ========================================================= */
-const KEY = 'Personal Budget Tracker-v1';
+const KEY = 'Ledger-v1';
 // Starting (empty) data. rate = how many PHP for 1 AED (edit it in the header).
 let S = blank();            // stays empty until you sign in and your data is loaded
 let tab = 'Overview';
@@ -123,7 +123,7 @@ function save(){ if (window.cloudSave) window.cloudSave(S); }
 function startApp(data){ S = Object.assign(blank(), data || {}); tab = 'Overview'; editId = null; payReq = null; render(); }
 // Called when you sign out: wipe the data from memory
 function stopApp(){ S = blank(); }
-window.Personal Budget TrackerData = () => S;   // lets the sign-in code read the current data
+window.LedgerData = () => S;   // lets the sign-in code read the current data
 
 /* =========================================================
    2. HELPERS – currency, formatting, safe text
@@ -644,8 +644,8 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
 // These are not passwords. The security comes from the Firestore rules, not from hiding this.
 const firebaseConfig = {
   apiKey:    "AIzaSyBukgXGyOaT4MGeDhER2Hr8QdeKXTZ2M74",
-  authDomain:"Personal Budget Tracker-1820a.firebaseapp.com",
-  projectId: "Personal Budget Tracker-1820a",
+  authDomain:"Ledger-1820a.firebaseapp.com",
+  projectId: "Ledger-1820a",
   appId:     "1:924883349786:web:e69cf8cbd9c8b70d89bca3"
 };
 
@@ -662,7 +662,7 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
   const db   = getFirestore(app);
 
   let currentUid = null, saveTimer = null, lastLogos = null;
-  const KEY = 'Personal Budget Tracker-v1';   // where the old browser-only version kept your data
+  const KEY = 'Ledger-v1';   // where the old browser-only version kept your data
 
   /* ---------- friendly error messages ---------- */
   function friendly(e){
@@ -713,15 +713,15 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
     catch (e) { msg(friendly(e)); }
   });
 
-  /* ---------- saving: users/<your id>/Personal Budget Tracker/main (+ /logos) ---------- */
+  /* ---------- saving: users/<your id>/Ledger/main (+ /logos) ---------- */
   async function writeNow(S){
     if (!currentUid) return false;
     const { logos, ...rest } = S;                 // pictures go in their own document (they are big)
     const logosJson = JSON.stringify(logos || {});
     try {
-      await setDoc(doc(db, 'users', currentUid, 'Personal Budget Tracker', 'main'), { json: JSON.stringify(rest), updated: serverTimestamp() });
+      await setDoc(doc(db, 'users', currentUid, 'Ledger', 'main'), { json: JSON.stringify(rest), updated: serverTimestamp() });
       if (logosJson !== lastLogos){
-        await setDoc(doc(db, 'users', currentUid, 'Personal Budget Tracker', 'logos'), { json: logosJson });
+        await setDoc(doc(db, 'users', currentUid, 'Ledger', 'logos'), { json: logosJson });
         lastLogos = logosJson;
       }
       setState('Saved \u2713');
@@ -739,7 +739,7 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
     saveTimer = setTimeout(() => { saveTimer = null; writeNow(S); }, 500);
   };
   async function flush(){
-    if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; await writeNow(window.Personal Budget TrackerData()); }
+    if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; await writeNow(window.LedgerData()); }
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
   window.signOutNow = async () => { await flush(); await signOut(auth); };
@@ -755,8 +755,8 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
     msg('Loading your data\u2026');
     try {
       const [m, l] = await Promise.all([
-        getDoc(doc(db, 'users', user.uid, 'Personal Budget Tracker', 'main')),
-        getDoc(doc(db, 'users', user.uid, 'Personal Budget Tracker', 'logos'))
+        getDoc(doc(db, 'users', user.uid, 'Ledger', 'main')),
+        getDoc(doc(db, 'users', user.uid, 'Ledger', 'logos'))
       ]);
       let data = null, imported = false;
       if (m.exists()){
@@ -768,13 +768,13 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
         if (old && confirm('Found data saved in this browser. Import it into your account?')){ data = JSON.parse(old); imported = true; }
       }
       startApp(data);
-      lastLogos = JSON.stringify(window.Personal Budget TrackerData().logos || {});
+      lastLogos = JSON.stringify(window.LedgerData().logos || {});
       $('who').textContent = user.email || user.displayName || 'you';
       $('auth').hidden = true; $('app').hidden = false; msg('');
       setState('Saved \u2713');
       if (imported){
         lastLogos = null;   // make sure the pictures are uploaded too
-        if (await writeNow(window.Personal Budget TrackerData())) localStorage.removeItem(KEY);   // delete the local copy only after the cloud copy is safe
+        if (await writeNow(window.LedgerData())) localStorage.removeItem(KEY);   // delete the local copy only after the cloud copy is safe
       }
     } catch (e) {
       console.error(e);
