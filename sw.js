@@ -1,7 +1,7 @@
 // Service worker: makes the app installable and keeps a copy of the app shell.
 // Strategy: NETWORK FIRST, so after every deploy you always get the newest version.
 // The saved copy is only used if you are offline.
-const CACHE = 'ledger-shell-v1';
+const CACHE = 'budget-shell-v2';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {

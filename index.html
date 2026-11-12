@@ -5,99 +5,149 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#5b7478">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="apple-mobile-web-app-title" content="Budget Tracker">
 
-<title>Ledger · UAE + PH Finance Tracker</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Serif+4:wght@600&display=swap">
+<title>Personal Budget Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&display=swap">
 <style>
-/* ---------- COLOURS (your design system) ---------- */
+/* ---------- THEME: soft sky-blue + slate, like your reference design ---------- */
 :root{
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
-  --bg:#FAF9F5; --card:#FFFFFF; --text:#2B2A27; --muted:#7A776F;
-  --accent:#D97757; --line:#E8E5DC; --good:#3E8E5A; --bad:#C0432F;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#1F1E1B; --card:#2A2926; --text:#F2EFE8; --muted:#A09C92; --line:#3A3935; --good:#6CC28A; --bad:#E8806C;
-  }
+  --cyan:#87D9EB;      /* header banners, active tab */
+  --slate:#536B81;     /* main buttons */
+  --navy:#1B2733;      /* headings and text */
+  --bg:#F3F8FA;        /* inside boxes (inputs) */
+  --card:#FFFFFF; --text:#1B2733; --muted:#6F7C8A;
+  --accent:#87D9EB; --line:#E4ECF0; --good:#2E9E78; --bad:#D2574A;
 }
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.4}
-h1,h2{font-family:'Source Serif 4',Georgia,serif;margin:0}
-.wrap{max-width:760px;margin:0 auto;padding:14px}
-/* ---------- HEADER ---------- */
-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.ctrl{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
-.seg button{border:1px solid var(--line);background:var(--card);color:var(--text);padding:6px 12px;cursor:pointer}
-.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}
-.seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+body{margin:0;min-height:100vh;background:linear-gradient(135deg,#5d7679 0%,#3f5a62 55%,#34505a 100%);color:var(--text);font-family:Lexend,system-ui,sans-serif;font-size:15px;line-height:1.45}
+h1,h2{font-family:Lexend,system-ui,sans-serif;font-weight:600;margin:0}
+h2{font-size:18px}
+.wrap{max-width:560px;margin:0 auto;padding:14px}
+[hidden]{display:none!important}
+
+/* ---------- HEADER BANNER ---------- */
+header.hero{background:var(--cyan);border-radius:28px;padding:20px 20px 16px;box-shadow:0 12px 30px rgba(0,0,0,.18)}
+header.hero .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header.hero h1{color:#fff;font-size:24px;line-height:1.15}
+.ctrl{display:flex;gap:8px;align-items:center;font-size:13px;color:#2f5b6b}
+.seg{display:inline-flex}
+.seg button{border:0;background:#fff;color:var(--navy);padding:7px 14px;cursor:pointer;font:inherit;font-size:13px}
+.seg button:first-child{border-radius:999px 0 0 999px}.seg button:last-child{border-radius:0 999px 999px 0}
+.seg button.on{background:var(--slate);color:#fff}
+header.hero .who{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:#2f5b6b;flex-wrap:wrap}
+header.hero .who b{color:var(--navy);font-weight:500;word-break:break-all}
+
 /* ---------- TABS ---------- */
-nav{display:flex;gap:6px;overflow-x:auto;margin:14px 0}
-nav button{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--text);padding:8px 14px;border-radius:20px;cursor:pointer}
-nav button.on{background:var(--text);color:var(--bg)}
+nav{display:flex;gap:8px;overflow-x:auto;margin:16px 0;padding-bottom:2px;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{white-space:nowrap;border:0;background:#fff;color:var(--navy);padding:9px 16px;border-radius:999px;cursor:pointer;font:inherit;font-size:14px}
+nav button.on{background:var(--cyan);font-weight:600}
+
 /* ---------- CARDS, LISTS, FORMS ---------- */
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.big{font-family:'Source Serif 4',Georgia,serif;font-size:22px}
+#view{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.card{background:var(--card);border-radius:24px;padding:18px;box-shadow:0 10px 28px rgba(0,0,0,.12);min-width:0}
+.card.hero{background:var(--cyan)}
+.card.hero .lbl{color:#2f5b6b}
+.card.hero .big{color:#fff;font-size:30px}
+.card.top{order:-1}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.big{font-family:Lexend,system-ui,sans-serif;font-weight:600;font-size:20px;overflow-wrap:anywhere}
 .lbl{font-size:12px;color:var(--muted)}
+#app > p.lbl,#view > p.lbl{color:rgba(255,255,255,.8)}
 .good{color:var(--good)}.bad{color:var(--bad)}
-.row{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.row{display:flex;justify-content:space-between;gap:8px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
 .row small{color:var(--muted);display:block}
-.f{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.f label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
-input,select{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);width:100%}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.f label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--text);width:100%}
+input:focus,select:focus{outline:2px solid var(--cyan);outline-offset:0}
 input:disabled,select:disabled{background:var(--line);opacity:.5;cursor:not-allowed}
-.mini{width:90px;padding:5px}
-button.p{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;margin-top:10px}
-button.x{background:none;border:0;color:var(--muted);cursor:pointer}
-button.s{border:1px solid var(--line);background:none;color:var(--text);border-radius:6px;padding:4px 8px;cursor:pointer}
-td,th{padding:6px 4px;text-align:right;border-bottom:1px solid var(--line)}
+.mini{width:84px;padding:6px 10px;background:#fff;border-color:#fff;color:var(--navy);border-radius:999px}
+button.p{background:var(--slate);color:#fff;border:0;border-radius:999px;padding:12px 22px;cursor:pointer;margin-top:14px;font:inherit;font-weight:500;box-shadow:0 6px 14px rgba(83,107,129,.35)}
+button.p:hover{filter:brightness(1.07)}
+button.x{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:13px}
+button.s{border:1px solid #d3dde4;background:#fff;color:var(--navy);border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12px}
+td,th{padding:8px 4px;text-align:right;border-bottom:1px solid var(--line)}
 td:first-child,th:first-child{text-align:left}
 th{color:var(--muted);font-weight:400}
-.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:4px}
-.bar i{display:block;height:100%;background:var(--accent)}
+.bar{height:8px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--cyan);border-radius:999px}
+
 /* ---------- SIGN-IN SCREEN ---------- */
-[hidden]{display:none!important}
 .authwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:14px}
-.authcard{width:100%;max-width:360px}
-.authcard label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);margin-top:10px}
-.authcard .lbl{margin:10px 0 0}
+.authcard{width:100%;max-width:400px;padding:0;overflow:hidden}
+.authcard .banner{background:var(--cyan);padding:26px 24px 22px}
+.authcard .banner h1{color:#fff;font-size:26px;line-height:1.15}
+.authcard .banner h2{color:#fff;font-size:18px;font-weight:500;margin-top:6px}
+.authcard .fields{padding:6px 24px 22px}
+.authcard label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);margin-top:14px}
+.authcard .lbl{margin:12px 0 0}
+.authcard .links{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
+.authcard .links button{padding:4px 0}
+.authcard button.p{width:100%}
+.authcard button.s{width:100%;margin-top:10px;padding:11px}
+
+/* ---------- LAPTOP / TABLET: wider page, two columns, 4 stat boxes in a row ---------- */
+@media (min-width:820px){
+  .wrap{max-width:1080px;padding:28px}
+  #view{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+  .span,#view > .grid,#view > p.lbl{grid-column:1/-1}
+  .grid{grid-template-columns:repeat(4,1fr);gap:16px}
+  header.hero{padding:26px 30px 20px}
+  header.hero h1{font-size:30px}
+  .card{padding:22px}
+}
+/* ---------- SMALL PHONES: single-column forms ---------- */
+@media (max-width:480px){
+  .f{grid-template-columns:1fr}
+  header.hero h1{font-size:21px}
+  .card.hero .big{font-size:26px}
+  .big{font-size:18px}
+}
 </style>
 </head>
 <body>
 <!-- SIGN-IN SCREEN: shown first; the app below stays hidden until you are signed in -->
 <div id="auth" class="authwrap">
   <form id="authForm" class="card authcard">
-    <h1>Ledger</h1>
-    <h2 id="authTitle" style="font-size:18px;margin-top:6px">Sign in</h2>
+    <div class="banner">
+      <h1>Personal Budget Tracker</h1>
+      <h2 id="authTitle">Sign in</h2>
+    </div>
+    <div class="fields">
     <label>Email<input id="authEmail" type="email" autocomplete="username" required></label>
     <label>Password<input id="authPw" type="password" autocomplete="current-password" required minlength="6"></label>
-    <button class="p" id="authGo" type="submit" style="width:100%">Sign in</button>
-    <button class="s" id="authGoogle" type="button" style="width:100%;margin-top:8px;padding:9px">Continue with Google</button>
+    <button class="p" id="authGo" type="submit">Sign in</button>
+    <button class="s" id="authGoogle" type="button">Continue with Google</button>
     <p id="authMsg" class="lbl" role="alert"></p>
-    <p class="lbl"><button class="x" id="authSwitch" type="button">New here? Create an account</button> &middot; <button class="x" id="authReset" type="button">Forgot password?</button></p>
+    <p class="lbl links"><button class="x" id="authSwitch" type="button">New here? Create an account</button><button class="x" id="authReset" type="button">Forgot password?</button></p>
+    </div>
   </form>
 </div>
 
 <div class="wrap" id="app" hidden>
-  <header>
-    <h1>Ledger</h1>
-    <div class="ctrl">
-      <span class="seg" id="dispSeg"></span>
-      1 AED = <input class="mini" id="rate" type="number" step="0.01"> PHP
+  <header class="hero">
+    <div class="top">
+      <h1>Personal Budget Tracker</h1>
+      <div class="ctrl">
+        <span class="seg" id="dispSeg"></span>
+        1 AED = <input class="mini" id="rate" type="number" step="0.01"> PHP
+      </div>
+    </div>
+    <div class="who">
+      <span>Signed in as <b id="who"></b> &middot; <span id="saveState"></span></span>
+      <button class="s" onclick="signOutNow()">Sign out</button>
     </div>
   </header>
-  <div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px">
-    <span>Signed in as <b id="who"></b> &middot; <span id="saveState"></span></span>
-    <button class="s" onclick="signOutNow()">Sign out</button>
-  </div>
   <nav id="tabs"></nav>
   <div id="view"></div>
   <p class="lbl"><button class="s" onclick="sample()">Load sample data</button> <button class="s" onclick="wipe()">Clear all</button></p>
@@ -142,7 +192,7 @@ function avatar(name, size){
   const base = 'width:'+size+'px;height:'+size+'px;border-radius:50%;flex:none;vertical-align:middle;';
   if (S.logos[name]) return '<img alt="" src="'+S.logos[name]+'" style="'+base+'object-fit:cover">';
   const ini = String(name || '?').split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join('');
-  return '<span style="'+base+'display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:'+Math.round(size*0.38)+'px;font-weight:600">'+esc(ini)+'</span>';
+  return '<span style="'+base+'display:inline-flex;align-items:center;justify-content:center;background:var(--slate);color:#fff;font-size:'+Math.round(size*0.38)+'px;font-weight:600">'+esc(ini)+'</span>';
 }
 // One consistent label for an account everywhere: "Bank · Account name (AED)"
 const accLabel = a => (a.bank ? a.bank + ' · ' : '') + a.name + ' (' + cur(a.country) + ')';
@@ -460,11 +510,11 @@ const views = {
     // UAE vs Philippines split of cash
     const split = c => S.acc.filter(a=>a.kind!=='Credit card'&&a.country===c).reduce((s,a)=>s+D(a.bal,cur(c)),0);
     const stat = (l,v,cls) => '<div class="card"><div class="lbl">'+l+'</div><div class="big '+(cls||'')+'">'+fmt(v,S.disp)+'</div></div>';
-    return '<div class="card"><div class="lbl">Net worth</div><div class="big '+(net>=0?'good':'bad')+'">'+fmt(net,S.disp)+'</div></div>'
+    return '<div class="card hero span"><div class="lbl">Net worth</div><div class="big">'+fmt(net,S.disp)+'</div></div>'
       + '<div class="grid">'+stat('Cash &amp; banks',cash)+stat('Savings',sav,'good')+stat('Card balances owed',owed,'bad')+stat('Debt remaining',debt,'bad')
       + stat('Income this month',inc,'good')+stat('Spent this month',out,'bad')
       + stat('Cash in UAE',split('UAE'))+stat('Cash in Philippines',split('Philippines'))+'</div>'
-      + '<div class="card"><h2>Spending this month</h2>'
+      + '<div class="card span"><h2>Spending this month</h2>'
       + (Object.keys(cats).length ? Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>
           '<div style="margin-top:10px"><div class="row" style="border:0;padding:0"><span>'+esc(c)+'</span><span>'+fmt(v,S.disp)+'</span></div><div class="bar"><i style="width:'+(v/max*100)+'%"></i></div></div>').join('')
         : '<p class="lbl">No spending yet this month.</p>') + '</div>';
@@ -497,7 +547,7 @@ const views = {
         +'<div style="margin-top:6px"><button class="s" onclick="receiveIncome('+s.id+')">Received</button> <button class="x" onclick="editInc('+s.id+')">edit</button> <button class="x" onclick="del(\'inc\','+s.id+')">delete</button></div></div>';
     }).join('') || '<p class="lbl">No income sources yet.</p>';
     return formHTML('inc')
-      + '<div class="card"><div class="lbl">Expected monthly income</div><div class="big good">'+fmt(total,S.disp)+'</div></div>'
+      + '<div class="card span top"><div class="lbl">Expected monthly income</div><div class="big good">'+fmt(total,S.disp)+'</div></div>'
       + '<div class="card">'+list+'</div>';
   },
   Bills(){
@@ -511,7 +561,7 @@ const views = {
         +'<div style="margin-top:6px"><button class="s" onclick="payBill('+b.id+')">Pay</button> <button class="x" onclick="editBill('+b.id+')">edit</button> <button class="x" onclick="del(\'bill\','+b.id+')">delete</button></div></div>';
     }).join('') || '<p class="lbl">No recurring expenses yet.</p>';
     return formHTML('bill')
-      + '<div class="card"><div class="lbl">Recurring expenses per month</div><div class="big bad">'+fmt(total,S.disp)+'</div></div>'
+      + '<div class="card span top"><div class="lbl">Recurring expenses per month</div><div class="big bad">'+fmt(total,S.disp)+'</div></div>'
       + '<div class="card">'+list+'</div>';
   },
   Forecast(){
@@ -538,7 +588,7 @@ const views = {
     const max = Math.max(1, ...rows.map(r => Math.abs(r.bal)));
     const stat = (l,v,cls) => '<div class="card"><div class="lbl">'+l+'</div><div class="big '+(cls||'')+'">'+v+'</div></div>';
     const last = rows[rows.length-1];
-    return '<div class="card"><h2>Forecast settings</h2><div class="f">'
+    return '<div class="card span"><h2>Forecast settings</h2><div class="f">'
       + '<label>Look ahead<select onchange="S.fcN=Number(this.value);save();render()">'+[3,6,12].map(n => '<option value="'+n+'"'+(n===N?' selected':'')+'>'+n+' months</option>').join('')+'</select></label>'
       + '<label>Other spending / month ('+S.disp+')<input type="number" step="0.01" value="'+(Math.round(spend*100)/100)+'" onchange="S.fcSpend={v:parseFloat(this.value)||0,c:S.disp};save();render()"></label></div>'
       + '<p class="lbl">'+(S.fcSpend ? 'Using your own number. <button class="s" onclick="S.fcSpend=null;save();render()">Use automatic</button>' : 'Automatic: '+auto.note+'.')+' Bills and debt payments are added on top, using each debt\u2019s monthly payment.</p></div>'
@@ -548,9 +598,9 @@ const views = {
       + stat('Bills / month', fmt(bills,S.disp), 'bad')
       + stat('Net / month (first month)', rows[0] ? fmt(rows[0].net,S.disp) : '—', rows[0] && rows[0].net>=0 ? 'good' : 'bad')
       + stat('Debt-free in', freeIn === 0 ? (S.debt.length ? 'Already!' : 'No debts') : freeIn ? freeIn+' months ('+label(freeIn)+')' : 'Not set — add monthly payments')+'</div>'
-      + '<div class="card"><h2>Projected cash</h2>'
+      + '<div class="card span"><h2>Projected cash</h2>'
       + rows.map(r => '<div style="margin-top:10px"><div class="row" style="border:0;padding:0"><span>'+label(r.i)+'</span><span class="'+(r.bal>=0?'good':'bad')+'">'+fmt(r.bal,S.disp)+'</span></div><div class="bar"><i style="width:'+(Math.abs(r.bal)/max*100)+'%;background:'+(r.bal>=0?'var(--good)':'var(--bad)')+'"></i></div></div>').join('')+'</div>'
-      + '<div class="card"><h2>Month by month ('+S.disp+')</h2><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + '<div class="card span"><h2>Month by month ('+S.disp+')</h2><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
       + '<tr><th>Month</th><th>Income</th><th>Bills</th><th>Other</th><th>Debt</th><th>Net</th><th>Cash</th></tr>'
       + rows.map(r => '<tr><td>'+label(r.i)+'</td><td>'+num(inc)+'</td><td>'+num(bills)+'</td><td>'+num(spend)+'</td><td>'+num(r.pay)+'</td><td class="'+(r.net>=0?'good':'bad')+'">'+num(r.net)+'</td><td>'+num(r.bal)+'</td></tr>').join('')+'</table></div></div>'
       + '<p class="lbl">An estimate only: it assumes steady income and spending, and ignores savings goals and any one-off costs.</p>';
