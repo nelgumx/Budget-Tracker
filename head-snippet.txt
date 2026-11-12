@@ -1,0 +1,13 @@
+<!-- PASTE 1: inside <head>, right after the <meta name="viewport" ...> line -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0f766e">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+
+<!-- PASTE 2: just before the very last </body> line -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+}
+</script>
