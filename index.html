@@ -181,7 +181,7 @@ th{color:var(--muted);font-weight:400}
       <h2 id="authTitle">Sign in</h2>
     </div>
     <div class="fields">
-    <label>Email<input id="authEmail" type="email" autocomplete="username" required></label>
+    <label><span id="authUserLabel">Username</span><input id="authEmail" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
     <label>Password<input id="authPw" type="password" autocomplete="current-password" required minlength="6"></label>
     <button class="p" id="authGo" type="submit">Sign in</button>
     <button class="s" id="authGoogle" type="button">Continue with Google</button>
@@ -225,14 +225,14 @@ th{color:var(--muted);font-weight:400}
         <h3>Account</h3>
         <p class="lbl">Signed in as <b id="setWho"></b></p>
         <p class="lbl" id="methods" style="margin-top:4px"></p>
-        <div id="pwBox" hidden>
-          <p class="lbl" style="margin-top:12px">Add a password so you can also sign in with your email and password. It is the same account, so you keep all your data.</p>
+        <div id="pwBox">
+          <p class="lbl" id="pwHelp" style="margin-top:12px"></p>
+          <label class="plabel" id="unameRow">Username (3 to 20 letters, numbers, . - _)<input id="newUser" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
           <label class="plabel">New password (8 or more characters)<input id="newPw" type="password" autocomplete="new-password"></label>
           <label class="plabel">Confirm password<input id="newPw2" type="password" autocomplete="new-password"></label>
-          <button class="p" id="setPwBtn" type="button">Set password</button>
+          <button class="p" id="setPwBtn" type="button">Save</button>
         </div>
         <div class="btns">
-          <button class="s" id="resetPw" type="button">Send password reset email</button>
           <button class="s" id="setSignOut" type="button">Sign out</button>
         </div>
       </section>
@@ -761,16 +761,22 @@ document.getElementById('rate').addEventListener('change', e=>{ S.rate = parseFl
 // ---- Settings panel ----
 const $s = id => document.getElementById(id);
 function refreshMethods(){
-  const m = window.authMethods ? window.authMethods() : [];
-  const g = m.includes('google.com'), pw = m.includes('password');
-  $s('methods').textContent = 'Sign-in methods: ' + (g ? 'Google \u2713' : 'Google \u2014') + '  \u00b7  ' + (pw ? 'Email & password \u2713' : 'Email & password \u2014 not set yet');
-  $s('pwBox').hidden = pw;          // the form only shows until a password exists
-  $s('resetPw').hidden = !pw;       // reset email only makes sense once there is a password
+  const i = window.loginInfo ? window.loginInfo() : {google:false, password:false, name:'', isUsername:false};
+  const pwText = i.password
+    ? (i.isUsername ? 'Username & password \u2713 (username: ' + i.name + ')' : 'Email & password \u2713 (' + i.name + ')')
+    : 'Username & password \u2014 not set yet';
+  $s('methods').textContent = 'Sign-in methods: ' + (i.google ? 'Google \u2713' : 'Google \u2014') + '  \u00b7  ' + pwText;
+  const needsName = !i.password || (!i.isUsername && i.google);   // no password yet, or still using an email to sign in
+  $s('unameRow').hidden = !needsName;
+  $s('pwHelp').textContent = !i.password
+    ? 'Add a username and password so you can also sign in without Google. It is the same account, so you keep all your data.'
+    : needsName ? 'Switch to a username, so you sign in with it instead of your email.' : 'Change your password.';
+  $s('setPwBtn').textContent = !i.password ? 'Add username & password' : needsName ? 'Switch to username' : 'Change password';
 }
 function openSettings(){
   $s('setWho').textContent = $s('who').textContent;
   $s('setMsg').textContent = '';
-  $s('newPw').value = ''; $s('newPw2').value = '';
+  $s('newUser').value = ''; $s('newPw').value = ''; $s('newPw2').value = '';
   refreshMethods();
   $s('settings').hidden = false;
   $s('closeSettings').focus();
@@ -781,20 +787,19 @@ $s('closeSettings').addEventListener('click', closeSettings);
 $s('settings').addEventListener('click', e => { if (e.target === $s('settings')) closeSettings(); });   // tap outside the card
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$s('settings').hidden) closeSettings(); });
 $s('setSignOut').addEventListener('click', () => { $s('settings').hidden = true; if (window.signOutNow) window.signOutNow(); });
-$s('resetPw').addEventListener('click', async () => {
-  if (!window.resetPassword) { $s('setMsg').textContent = 'Not available right now.'; return; }
-  $s('setMsg').textContent = 'Sending\u2026';
-  $s('setMsg').textContent = await window.resetPassword();
-});
 $s('exportXlsx').addEventListener('click', () => exportExcel());
 $s('setPwBtn').addEventListener('click', async () => {
+  const i = window.loginInfo ? window.loginInfo() : {};
+  const needsName = !i.password || (!i.isUsername && i.google);
+  const name = needsName ? $s('newUser').value.trim().toLowerCase() : '';
   const a = $s('newPw').value, b = $s('newPw2').value, msg = $s('setMsg');
-  if (a.length < 8) { msg.textContent = 'Use at least 8 characters.'; return; }
+  if (needsName && !/^[a-z0-9._-]{3,20}$/.test(name)) { msg.textContent = 'Username: 3 to 20 characters, using letters, numbers, dot, dash or underscore.'; return; }
+  if (a.length < 8) { msg.textContent = 'Use at least 8 characters for the password.'; return; }
   if (a !== b)      { msg.textContent = 'The two passwords do not match.'; return; }
-  if (!window.addPassword) { msg.textContent = 'Not available right now.'; return; }
+  if (!window.saveLogin) { msg.textContent = 'Not available right now.'; return; }
   msg.textContent = 'Saving\u2026';
-  msg.textContent = await window.addPassword(a);
-  $s('newPw').value = ''; $s('newPw2').value = '';
+  msg.textContent = await window.saveLogin(name, a);
+  $s('newUser').value = ''; $s('newPw').value = ''; $s('newPw2').value = '';
   refreshMethods();
 });
 
@@ -910,7 +915,7 @@ const catIcon = cat => '<span class="ico" aria-hidden="true"><svg viewBox="0 0 2
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
          signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, signOut,
-         EmailAuthProvider, linkWithCredential, reauthenticateWithPopup }
+         EmailAuthProvider, linkWithCredential, reauthenticateWithPopup, updatePassword, unlink }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -939,17 +944,27 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
   let currentUid = null, saveTimer = null, lastLogos = null;
   const KEY = 'ledger-v1';   // where the old browser-only version kept your data
 
+  /* ---------- usernames ----------
+     Firebase signs people in with an email address. To give you a plain username, the app quietly turns
+     "nel" into the hidden address nel@users.pbt.invalid. Nobody sees it and no email is ever sent to it.
+     If someone types a real email (with an @), it is used as it is. */
+  const FAKE = '@users.pbt.invalid';
+  const toEmail = v => { v = String(v).trim().toLowerCase(); return v.includes('@') ? v : v + FAKE; };
+  const toName  = e => (e && e.endsWith(FAKE)) ? e.slice(0, -FAKE.length) : (e || '');
+  const USERNAME_OK = /^[a-z0-9._-]{3,20}$/;
+  const USERNAME_MSG = 'Username: 3 to 20 characters, using letters, numbers, dot, dash or underscore.';
+
   /* ---------- friendly error messages ---------- */
   function friendly(e){
     const m = {
-      'auth/invalid-email': 'That email address does not look right.',
+      'auth/invalid-email': 'That username or email does not look right.',
       'auth/missing-password': 'Enter your password.',
-      'auth/invalid-credential': 'Wrong email or password. If you normally sign in with Google, tap Continue with Google, then add a password in Settings.',
-      'auth/user-not-found': 'Wrong email or password.',
-      'auth/wrong-password': 'Wrong email or password.',
-      'auth/email-already-in-use': 'There is already an account with this email. If you normally use Google, tap Continue with Google, then add a password in Settings.',
-      'auth/provider-already-linked': 'A password is already set for this account.',
-      'auth/credential-already-in-use': 'That email already belongs to another account.',
+      'auth/invalid-credential': 'Wrong username or password. If you normally sign in with Google, tap Continue with Google, then add a username and password in Settings.',
+      'auth/user-not-found': 'Wrong username or password.',
+      'auth/wrong-password': 'Wrong username or password.',
+      'auth/email-already-in-use': 'That username or email is already taken. If it is yours and you normally use Google, tap Continue with Google, then add a username and password in Settings.',
+      'auth/provider-already-linked': 'A username and password is already set for this account.',
+      'auth/credential-already-in-use': 'That username is already taken. Try another one.',
       'auth/requires-recent-login': 'For safety, please sign out, sign in again, and then retry.',
       'auth/weak-password': 'Password must be at least 6 characters.',
       'auth/too-many-requests': 'Too many tries. Wait a few minutes and try again.',
@@ -965,6 +980,7 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
   function setMode(m){
     mode = m;
     $('authTitle').textContent  = m === 'signin' ? 'Sign in' : 'Create account';
+    $('authUserLabel').textContent = m === 'signin' ? 'Username' : 'Choose a username';
     $('authGo').textContent     = m === 'signin' ? 'Sign in' : 'Create account';
     $('authSwitch').textContent = m === 'signin' ? 'New here? Create an account' : 'Have an account? Sign in';
     $('authPw').autocomplete    = m === 'signin' ? 'current-password' : 'new-password';
@@ -974,20 +990,27 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
 
   $('authForm').addEventListener('submit', async ev => {
     ev.preventDefault(); msg('');
-    const email = $('authEmail').value.trim(), pw = $('authPw').value;
+    const raw = $('authEmail').value.trim(), pw = $('authPw').value;
+    if (mode === 'signup') {
+      if (!raw.includes('@') && !USERNAME_OK.test(raw.toLowerCase())) return msg(USERNAME_MSG);
+      if (pw.length < 8) return msg('Use at least 8 characters for your password.');
+    }
     try {
-      if (mode === 'signin') await signInWithEmailAndPassword(auth, email, pw);
-      else await createUserWithEmailAndPassword(auth, email, pw);
-    } catch (e) { msg(friendly(e)); }
+      if (mode === 'signin') await signInWithEmailAndPassword(auth, toEmail(raw), pw);
+      else await createUserWithEmailAndPassword(auth, toEmail(raw), pw);
+    } catch (e) {
+      if (mode === 'signup' && e.code === 'auth/email-already-in-use' && !raw.includes('@')) msg('That username is already taken. Try another one.');
+      else msg(friendly(e));
+    }
   });
   $('authGoogle').addEventListener('click', async () => {
     msg('');
     try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { msg(friendly(e)); }
   });
   $('authReset').addEventListener('click', async () => {
-    const email = $('authEmail').value.trim();
-    if (!email) return msg('Type your email above first, then tap Forgot password.');
-    try { await sendPasswordResetEmail(auth, email); msg('Password reset email sent. Check your inbox.'); }
+    const v = $('authEmail').value.trim();
+    if (!v.includes('@')) return msg('Reset emails need an email address. If you use a username, sign in with Google, then change your password in Settings.');
+    try { await sendPasswordResetEmail(auth, v.toLowerCase()); msg('Password reset email sent. Check your inbox.'); }
     catch (e) { msg(friendly(e)); }
   });
 
@@ -1021,28 +1044,35 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
   window.signOutNow = async () => { await flush(); await signOut(auth); };
-  // Used by Settings > Add a password: which sign-in methods this account has
-  window.authMethods = () => auth.currentUser ? auth.currentUser.providerData.map(p => p.providerId) : [];
-  // Adds email + password to the account you are signed in with (same account, same data)
-  window.addPassword = async (pw) => {
-    const u = auth.currentUser;
-    if (!u || !u.email) return 'No email address found for this account.';
-    const cred = EmailAuthProvider.credential(u.email, pw);
-    try { await linkWithCredential(u, cred); }
+  // Used by Settings: what this account can sign in with
+  window.loginInfo = () => {
+    const u = auth.currentUser; if (!u) return null;
+    const pw = u.providerData.find(p => p.providerId === 'password');
+    return { google: u.providerData.some(p => p.providerId === 'google.com'),
+             password: !!pw, name: pw ? toName(pw.email) : '', isUsername: !!(pw && pw.email.endsWith(FAKE)) };
+  };
+  // Used by Settings: add a username + password, switch from an email to a username, or change the password
+  window.saveLogin = async (name, pw) => {
+    const u = auth.currentUser; if (!u) return 'Please sign in first.';
+    const info = window.loginInfo();
+    const run = async () => {
+      if (name) {
+        if (u.providerData.some(p => p.providerId === 'password')) await unlink(u, 'password');   // switching from an email login
+        await linkWithCredential(u, EmailAuthProvider.credential(toEmail(name), pw));
+      } else {
+        await updatePassword(u, pw);
+      }
+    };
+    try { await run(); }
     catch (e) {
-      if (e.code !== 'auth/requires-recent-login') return friendly(e);
+      if (e.code !== 'auth/requires-recent-login') return (e.code === 'auth/email-already-in-use' || e.code === 'auth/credential-already-in-use') ? 'That username is already taken. Try another one.' : friendly(e);
+      if (!info.google) return friendly(e);
       // Firebase wants a fresh Google sign-in first, then we try once more
-      try { await reauthenticateWithPopup(u, new GoogleAuthProvider()); await linkWithCredential(u, cred); }
+      try { await reauthenticateWithPopup(u, new GoogleAuthProvider()); await run(); }
       catch (e2) { return friendly(e2); }
     }
-    return 'Done. You can now sign in with ' + u.email + ' and your password, or with Google. It is the same account and the same data.';
-  };
-  // Used by Settings > Send password reset email
-  window.resetPassword = async () => {
-    const u = auth.currentUser;
-    if (!u || !u.email) return 'No email address found for this account.';
-    try { await sendPasswordResetEmail(auth, u.email); return 'Password reset email sent to ' + u.email + '.'; }
-    catch (e) { return friendly(e); }
+    return name ? 'Done. You can now sign in with the username "' + name + '" and your password, or with Google. Same account, same data.'
+                : 'Your password was changed.';
   };
 
   /* ---------- what happens when you sign in or out ---------- */
@@ -1070,7 +1100,8 @@ if (firebaseConfig.apiKey.startsWith("PASTE")) {
       }
       startApp(data);
       lastLogos = JSON.stringify(window.ledgerData().logos || {});
-      $('who').textContent = user.email || user.displayName || 'you';
+      const gp = user.providerData.find(p => p.providerId === 'google.com');
+      $('who').textContent = (gp && gp.email) || toName(user.email) || user.displayName || 'you';
       $('auth').hidden = true; $('app').hidden = false; msg('');
       setState('Saved \u2713');
       if (imported){
